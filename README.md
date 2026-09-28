@@ -11,9 +11,11 @@
   </p>
 </div>
 
-![The st8ks overview with live cluster metrics, workload health and the issues that need attention](docs/images/overview.png)
+[![st8ks shows a memory fix for a crash-looping deployment as a diff, and the API server accepts the fix in a dry run](docs/images/launch-poster.jpg)](../../releases/latest)
 
 st8ks watches your clusters live. It shows every resource, finds workloads that fail, collects the evidence, and proposes a fix that you review as a diff. Every change goes through a confirmation with an optional server dry run.
+
+![The st8ks overview with live cluster metrics, workload health and the issues that need attention](docs/images/overview.png)
 
 ## What you can do
 
