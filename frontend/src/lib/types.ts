@@ -100,7 +100,7 @@ export interface Settings {
   assistantModel: string; logTail: number; hasKey: boolean;
 }
 
-export interface Source { path: string; kind: string; contexts: number; err?: string; removable: boolean }
+export interface Source { path: string; kind: string; contexts: number; err?: string; removable: boolean; hidden?: boolean }
 export interface InitState {
   settings: Settings; contexts: ContextInfo[]; sources: Source[]; explicit: boolean; initial: string; platform: string; loadErr: string;
   version: string;

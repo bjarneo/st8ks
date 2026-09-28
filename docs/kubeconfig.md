@@ -19,7 +19,26 @@ A file counts as a kubeconfig file when it contains `clusters` and `contexts`. F
 1. Click **Clusters** in the tree, or the **+** button in the rail.
 2. Click **Add file…** or **Add folder…**. You can also type a path and click **Add path**.
 
-st8ks stores the paths in its [settings](configuration.md). To remove a path, click **Remove** next to it in **Kubeconfig sources**.
+st8ks stores the paths in its [settings](configuration.md).
+
+## Remove a file or a folder
+
+To stop reading a source, click **Remove** next to it in **Kubeconfig sources**. No file is deleted.
+
+- An added file or folder leaves the list.
+- A file that st8ks found itself stays in the list, crossed out. This applies to `~/.kube/config`, a file in `KUBECONFIG`, a file in an added folder and a file from the `~/.kube` scan. To read it again, click **Add back**.
+
+You cannot remove the source of the connected context. Switch to another context first. Files from `--kubeconfig` cannot be removed in the app.
+
+## Delete a context
+
+To delete a context from its kubeconfig file, click **Delete…** on its card in the Clusters view, then confirm. st8ks does the same as `kubectl config delete-context`:
+
+- It removes the context from the file that defines it. The card shows the file.
+- It keeps the cluster and user entries, because other contexts can use them.
+- When the file had the context as `current-context`, it clears `current-context`.
+
+st8ks writes the file again, so comments in the file are lost. You cannot delete the connected context. A context with a protected name, such as one that contains `prod`, needs the name typed to confirm.
 
 ## Changes are picked up
 

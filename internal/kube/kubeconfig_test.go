@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"sort"
 	"testing"
+
+	"k8s.io/client-go/tools/clientcmd"
 )
 
 func writeKubeconfig(t *testing.T, path string, ctxs map[string]string) {
@@ -88,5 +90,94 @@ func TestLoadKubeconfigs(t *testing.T) {
 	only := loadKubeconfigs(LoadOptions{Explicit: []string{extra}, Extra: []string{folder}, Scan: true})
 	if got := names(only); len(got) != 2 || got[0] != "dev" || got[1] != "staging" {
 		t.Errorf("explicit contexts = %v", got)
+	}
+}
+
+func TestHiddenKubeconfigs(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("KUBECONFIG", "")
+	def := filepath.Join(home, ".kube", "config")
+	writeKubeconfig(t, def, map[string]string{"main": "https://main:6443"})
+	scanned := filepath.Join(home, ".kube", "lab.yaml")
+	writeKubeconfig(t, scanned, map[string]string{"lab": "https://lab:6443"})
+	folder := filepath.Join(home, "configs")
+	inFolder := filepath.Join(folder, "edge.yaml")
+	writeKubeconfig(t, inFolder, map[string]string{"edge": "https://edge:6443"})
+
+	r := loadKubeconfigs(LoadOptions{Extra: []string{folder}, Hidden: []string{def, scanned, inFolder}, Scan: true})
+	if got := names(r); len(got) != 0 {
+		t.Fatalf("hidden files gave contexts %v", got)
+	}
+	hidden := 0
+	for _, s := range r.sources {
+		if s.Hidden {
+			hidden++
+			if !s.Removable || s.Contexts != 0 {
+				t.Errorf("hidden source = %+v", s)
+			}
+		}
+	}
+	if hidden != 3 {
+		t.Errorf("hidden sources = %d, want 3: %+v", hidden, r.sources)
+	}
+	for _, w := range r.watch {
+		if w == def || w == scanned || w == inFolder {
+			t.Errorf("hidden file %s is watched", w)
+		}
+	}
+
+	// A file from --kubeconfig is always read.
+	only := loadKubeconfigs(LoadOptions{Explicit: []string{scanned}, Hidden: []string{scanned}})
+	if got := names(only); len(got) != 1 || got[0] != "lab" || only.sources[0].Removable {
+		t.Errorf("explicit hidden file: contexts %v, sources %+v", got, only.sources)
+	}
+}
+
+func TestDeleteContext(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	primary := filepath.Join(home, "a.yaml")
+	writeKubeconfig(t, primary, map[string]string{"prod": "https://prod:6443", "dev": "https://dev:6443"})
+	extra := filepath.Join(home, "b.yaml")
+	writeKubeconfig(t, extra, map[string]string{"dev": "https://dev-b:6443"})
+	t.Setenv("KUBECONFIG", primary)
+	m := NewManager(func(string, any) {}, func() LoadOptions { return LoadOptions{Extra: []string{extra}} })
+	if err := m.Load(); err != nil {
+		t.Fatal(err)
+	}
+
+	// dev@b is the context "dev" in b.yaml. The dev context in a.yaml stays.
+	file, err := m.DeleteContext("dev@b")
+	if err != nil || file != extra {
+		t.Fatalf("DeleteContext = %q, %v", file, err)
+	}
+	cfg, err := clientcmd.LoadFromFile(extra)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(cfg.Contexts) != 0 || cfg.Clusters["dev"] == nil || cfg.AuthInfos["u"] == nil {
+		t.Errorf("b.yaml after delete: contexts %v, clusters %v, users %v", cfg.Contexts, cfg.Clusters, cfg.AuthInfos)
+	}
+	if cfg.Clusters["dev"].CertificateAuthority != "ca.crt" {
+		t.Errorf("relative certificate path changed to %s", cfg.Clusters["dev"].CertificateAuthority)
+	}
+	var got []string
+	for _, c := range m.Contexts() {
+		got = append(got, c.Name)
+	}
+	if len(got) != 2 || got[0] != "dev" || got[1] != "prod" {
+		t.Errorf("contexts after delete = %v", got)
+	}
+
+	// A context from the merged primary list is removed from its own file.
+	if file, err := m.DeleteContext("prod"); err != nil || file != primary {
+		t.Fatalf("DeleteContext(prod) = %q, %v", file, err)
+	}
+	if cfg, _ := clientcmd.LoadFromFile(primary); cfg.Contexts["prod"] != nil || cfg.Contexts["dev"] == nil {
+		t.Errorf("a.yaml contexts after delete = %v", cfg.Contexts)
+	}
+	if _, err := m.DeleteContext("missing"); err == nil {
+		t.Error("deleting an unknown context must fail")
 	}
 }

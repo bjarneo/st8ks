@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { call } from "../lib/bridge";
-import { connect, fail, say, ui } from "../lib/app";
+import { ask, connect, fail, protectedRe, say, ui } from "../lib/app";
 import { useStore } from "../lib/store";
 import { sumCounts } from "./Tree";
 import { statusDot } from "./TopBar";
@@ -29,7 +29,17 @@ export function ClustersView() {
     void call("ProbeContexts");
   }, []);
 
-  const files = sources.filter((s) => s.kind !== "folder").length;
+  const files = sources.filter((s) => s.kind !== "folder" && !s.hidden).length;
+  const del = (name: string, source: string) => ask({
+    title: `Delete context ${name}`,
+    danger: true,
+    cta: "Delete context",
+    items: [name],
+    note: `st8ks removes the context from ${shortPath(source)}, as kubectl config delete-context does. The cluster and user entries stay in the file.`,
+    word: protectedRe().test(name) ? name : null,
+    noDry: true,
+    run: () => call<string>("DeleteContext", name),
+  });
   const added = (m: string) => m && say(m);
   return (
     <div className="page" style={{ gap: 16 }}>
@@ -68,7 +78,10 @@ export function ClustersView() {
               {isCur ? (
                 <div className="ac" style={{ height: 26, display: "grid", placeItems: "center", fontSize: 12 }}>Current context</div>
               ) : (
-                <button className="btn sm" onClick={() => void connect(c.name)}>Switch to this context</button>
+                <div className="flex" style={{ gap: 6 }}>
+                  <button className="btn sm grow" onClick={() => void connect(c.name)}>Switch to this context</button>
+                  <button className="btn sm danger-text" title="Delete this context from its kubeconfig file" onClick={() => del(c.name, c.source)}>Delete…</button>
+                </div>
               )}
             </div>
           );
@@ -86,15 +99,19 @@ export function ClustersView() {
         )}
         <div className="box">
           {sources.map((s) => (
-            <div key={s.path} className="issue-row" style={{ padding: "8px 14px", paddingLeft: s.kind === "in folder" ? 34 : 14 }}>
-              <span className="dot sm" style={{ background: s.err ? "var(--er)" : s.contexts ? "var(--ok)" : "var(--fa)" }} />
+            <div key={s.path} className="issue-row" style={{ padding: "8px 14px", paddingLeft: s.kind === "in folder" ? 34 : 14, opacity: s.hidden ? 0.6 : 1 }}>
+              <span className="dot sm" style={{ background: s.hidden ? "transparent" : s.err ? "var(--er)" : s.contexts ? "var(--ok)" : "var(--fa)", boxShadow: s.hidden ? "inset 0 0 0 1px var(--fa)" : undefined }} />
               <div className="col grow" style={{ gap: 2 }}>
-                <span className="mono ell" style={{ fontSize: 12 }} title={s.path}>{shortPath(s.path)}</span>
-                <span className="small" style={{ color: s.err ? "var(--er)" : "var(--fa)" }}>
-                  {KIND_LABEL[s.kind] ?? s.kind} · {s.contexts} context{s.contexts === 1 ? "" : "s"}{s.err ? " · " + s.err : ""}
+                <span className="mono ell" style={{ fontSize: 12, textDecoration: s.hidden ? "line-through" : undefined }} title={s.path}>{shortPath(s.path)}</span>
+                <span className="small" style={{ color: s.err && !s.hidden ? "var(--er)" : "var(--fa)" }}>
+                  {KIND_LABEL[s.kind] ?? s.kind} · {s.hidden ? "removed from st8ks, the file stays on disk" : `${s.contexts} context${s.contexts === 1 ? "" : "s"}`}{s.err && !s.hidden ? " · " + s.err : ""}
                 </span>
               </div>
-              {s.removable && <button className="btn xs" onClick={() => call("RemoveKubeconfig", s.path).catch(fail)}>Remove</button>}
+              {s.hidden ? (
+                <button className="btn xs" onClick={() => call("RestoreKubeconfig", s.path).then(() => say(`st8ks reads ${shortPath(s.path)} again`), fail)}>Add back</button>
+              ) : s.removable && (
+                <button className="btn xs" title="st8ks stops reading this path. No file is deleted." onClick={() => call<string>("RemoveKubeconfig", s.path).then(say, fail)}>Remove</button>
+              )}
             </div>
           ))}
           {!sources.length && <div className="issue-row mu">No kubeconfig files were found.</div>}

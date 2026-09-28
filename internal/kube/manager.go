@@ -174,6 +174,54 @@ func (m *Manager) Contexts() []ContextInfo {
 
 func (m *Manager) emitContexts() { m.emit("contexts", m.Contexts()) }
 
+// ActiveSource returns the kubeconfig file of the connected context, or "".
+func (m *Manager) ActiveSource() string {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.cur == nil || m.entries[m.cur.Name] == nil {
+		return ""
+	}
+	return m.entries[m.cur.Name].source
+}
+
+// DeleteContext removes a context from the kubeconfig file that defines it,
+// as kubectl config delete-context does. The cluster and user entries stay,
+// because other contexts can use them. It returns the file it changed.
+func (m *Manager) DeleteContext(name string) (string, error) {
+	m.mu.Lock()
+	e := m.entries[name]
+	active := m.cur != nil && m.cur.Name == name
+	m.mu.Unlock()
+	switch {
+	case e == nil:
+		return "", fmt.Errorf("context %s not found", name)
+	case active:
+		return "", errors.New("st8ks is connected to this context. Switch to another context first")
+	case e.source == "":
+		return "", fmt.Errorf("the kubeconfig file of context %s is not known", name)
+	}
+	// LoadFromFile keeps relative certificate paths as they are, so the
+	// file keeps working after the write.
+	cfg, err := clientcmd.LoadFromFile(e.source)
+	if err != nil {
+		return "", err
+	}
+	if _, ok := cfg.Contexts[e.orig]; !ok {
+		return "", fmt.Errorf("%s has no context %s", e.source, e.orig)
+	}
+	delete(cfg.Contexts, e.orig)
+	if cfg.CurrentContext == e.orig {
+		cfg.CurrentContext = ""
+	}
+	if err := clientcmd.WriteToFile(*cfg, e.source); err != nil {
+		return "", err
+	}
+	m.mu.Lock()
+	delete(m.contexts, name)
+	m.mu.Unlock()
+	return e.source, m.Load()
+}
+
 func (m *Manager) restConfig(name string) (*rest.Config, *ctxEntry, string, error) {
 	m.mu.Lock()
 	e := m.entries[name]

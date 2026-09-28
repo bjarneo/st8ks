@@ -73,7 +73,7 @@ func NewApp(flags Flags) *App {
 	a := &App{st: settings.Open(), flags: flags, stop: make(chan struct{}), aiCtx: map[string]string{}}
 	a.m = kube.NewManager(a.emit, func() kube.LoadOptions {
 		s := a.st.Get()
-		return kube.LoadOptions{Explicit: a.flags.Kubeconfigs, Extra: s.Kubeconfigs, Scan: s.ScanKubeDir}
+		return kube.LoadOptions{Explicit: a.flags.Kubeconfigs, Extra: s.Kubeconfigs, Hidden: s.HiddenKubeconfigs, Scan: s.ScanKubeDir}
 	})
 	a.ai = assistant.New(a.emit, func() string { return a.st.Get().AnthropicKey }, func() string { return a.st.Get().AssistantModel })
 	return a
@@ -172,12 +172,17 @@ func (a *App) Init() InitState {
 		Initial: initial, Platform: goruntime.GOOS, LoadErr: a.m.LoadError(), Version: version}
 }
 
-// SaveSettings stores the settings. The API key is kept.
+// SaveSettings stores the settings that the frontend owns. The API key, the
+// kubeconfig sources and the last context have their own methods, so an old
+// copy in the frontend cannot undo them.
 func (a *App) SaveSettings(s settings.Settings) error {
 	return a.st.Update(func(cur *settings.Settings) {
-		key := cur.AnthropicKey
+		s.AnthropicKey = cur.AnthropicKey
+		s.Kubeconfigs = cur.Kubeconfigs
+		s.HiddenKubeconfigs = cur.HiddenKubeconfigs
+		s.ScanKubeDir = cur.ScanKubeDir
+		s.LastContext = cur.LastContext
 		*cur = s
-		cur.AnthropicKey = key
 	})
 }
 
@@ -257,6 +262,7 @@ func (a *App) addSource(path string) (string, error) {
 		if !slices.Contains(s.Kubeconfigs, path) {
 			s.Kubeconfigs = append(s.Kubeconfigs, path)
 		}
+		s.HiddenKubeconfigs = slices.DeleteFunc(s.HiddenKubeconfigs, func(p string) bool { return p == path })
 	}); err != nil {
 		return "", err
 	}
@@ -329,16 +335,60 @@ func (a *App) AddKubeconfigPath(path string) (string, error) {
 	return a.addSource(abs)
 }
 
-// RemoveKubeconfig removes an added file or folder.
-func (a *App) RemoveKubeconfig(path string) error {
+// RemoveKubeconfig stops reading a kubeconfig file or folder. An added path
+// leaves the list. A file that st8ks found itself, for example in ~/.kube,
+// is hidden and can come back with RestoreKubeconfig. No file is deleted.
+func (a *App) RemoveKubeconfig(path string) (string, error) {
+	if slices.Contains(a.flags.Kubeconfigs, path) {
+		return "", errors.New("st8ks runs with --kubeconfig, so it reads the files that the flag names")
+	}
+	if src := a.m.ActiveSource(); src == path || strings.HasPrefix(src, path+string(filepath.Separator)) {
+		return "", errors.New("the connected context comes from this path. Switch to another context first")
+	}
 	err := a.st.Update(func(s *settings.Settings) {
+		n := len(s.Kubeconfigs)
 		s.Kubeconfigs = slices.DeleteFunc(s.Kubeconfigs, func(p string) bool {
 			abs, _ := filepath.Abs(p)
 			return p == path || abs == path
 		})
+		if len(s.Kubeconfigs) == n && !slices.Contains(s.HiddenKubeconfigs, path) {
+			s.HiddenKubeconfigs = append(s.HiddenKubeconfigs, path)
+		}
+	})
+	a.reloadKubeconfigs()
+	if err != nil {
+		return "", err
+	}
+	return "st8ks no longer reads " + filepath.Base(path) + ". The file stays on disk.", nil
+}
+
+// RestoreKubeconfig reads a removed file again.
+func (a *App) RestoreKubeconfig(path string) error {
+	err := a.st.Update(func(s *settings.Settings) {
+		s.HiddenKubeconfigs = slices.DeleteFunc(s.HiddenKubeconfigs, func(p string) bool { return p == path })
 	})
 	a.reloadKubeconfigs()
 	return err
+}
+
+// DeleteContext removes a context from its kubeconfig file.
+func (a *App) DeleteContext(name string) (string, error) {
+	file, err := a.m.DeleteContext(name)
+	if err != nil {
+		return "", err
+	}
+	_ = a.st.Update(func(s *settings.Settings) {
+		delete(s.NsByContext, name)
+		if s.LastContext == name {
+			s.LastContext = ""
+		}
+	})
+	a.reloadKubeconfigs()
+	home, _ := os.UserHomeDir()
+	if home != "" && strings.HasPrefix(file, home+string(filepath.Separator)) {
+		file = "~" + file[len(home):]
+	}
+	return "Deleted context " + name + " from " + file, nil
 }
 
 // SetScanKubeDir turns the scan of ~/.kube on or off.

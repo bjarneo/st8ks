@@ -283,16 +283,19 @@ export function ask(cf: ConfirmSpec) {
 /** protectedWord returns the word a user must type before a change to a
  * production namespace or context, or null. */
 export function protectedWord(namespaces: string[], word: string): string | null {
-  const s = ui.get();
-  let re: RegExp;
-  try {
-    re = new RegExp(s.settings?.protectedPattern || "prod", "i");
-  } catch {
-    re = /prod/i;
-  }
-  const ctx = s.cluster?.context ?? "";
+  const re = protectedRe();
+  const ctx = ui.get().cluster?.context ?? "";
   if (re.test(ctx) || namespaces.some((n) => n === "" || re.test(n))) return word;
   return null;
+}
+
+/** protectedRe is the pattern from the settings for protected names. */
+export function protectedRe(): RegExp {
+  try {
+    return new RegExp(ui.get().settings?.protectedPattern || "prod", "i");
+  } catch {
+    return /prod/i;
+  }
 }
 
 export function confirmDelete(kind: string, items: Ref[], after?: () => void) {

@@ -18,37 +18,40 @@ type SavedView struct {
 
 // Settings holds every persisted preference.
 type Settings struct {
-	Theme            string              `json:"theme"`
-	Density          string              `json:"density"`
-	DetailLayout     string              `json:"detailLayout"`
-	OverviewStyle    string              `json:"overviewStyle"`
-	Collapsed        map[string]bool     `json:"collapsed"`
-	SavedViews       []SavedView         `json:"savedViews"`
-	Kubeconfigs      []string            `json:"kubeconfigs"`
-	ScanKubeDir      bool                `json:"scanKubeDir"`
-	LastContext      string              `json:"lastContext"`
-	NsByContext      map[string][]string `json:"nsByContext"`
-	ProtectedPattern string              `json:"protectedPattern"`
-	AnthropicKey     string              `json:"anthropicKey,omitempty"`
-	AssistantModel   string              `json:"assistantModel"`
-	LogTail          int                 `json:"logTail"`
+	Theme         string          `json:"theme"`
+	Density       string          `json:"density"`
+	DetailLayout  string          `json:"detailLayout"`
+	OverviewStyle string          `json:"overviewStyle"`
+	Collapsed     map[string]bool `json:"collapsed"`
+	SavedViews    []SavedView     `json:"savedViews"`
+	Kubeconfigs   []string        `json:"kubeconfigs"`
+	// HiddenKubeconfigs are files that st8ks found but the user removed.
+	HiddenKubeconfigs []string            `json:"hiddenKubeconfigs"`
+	ScanKubeDir       bool                `json:"scanKubeDir"`
+	LastContext       string              `json:"lastContext"`
+	NsByContext       map[string][]string `json:"nsByContext"`
+	ProtectedPattern  string              `json:"protectedPattern"`
+	AnthropicKey      string              `json:"anthropicKey,omitempty"`
+	AssistantModel    string              `json:"assistantModel"`
+	LogTail           int                 `json:"logTail"`
 }
 
 // Defaults returns the settings for a first start.
 func Defaults() Settings {
 	return Settings{
-		Theme:            "dark",
-		Density:          "compact",
-		DetailLayout:     "drawer",
-		OverviewStyle:    "metrics",
-		Collapsed:        map[string]bool{"config": true, "storage": true, "crd": true},
-		SavedViews:       []SavedView{},
-		Kubeconfigs:      []string{},
-		ScanKubeDir:      true,
-		NsByContext:      map[string][]string{},
-		ProtectedPattern: `(^|[-_.])(prod|production|prd|live)($|[-_.])`,
-		AssistantModel:   "claude-opus-5",
-		LogTail:          5000,
+		Theme:             "dark",
+		Density:           "compact",
+		DetailLayout:      "drawer",
+		OverviewStyle:     "metrics",
+		Collapsed:         map[string]bool{"config": true, "storage": true, "crd": true},
+		SavedViews:        []SavedView{},
+		Kubeconfigs:       []string{},
+		HiddenKubeconfigs: []string{},
+		ScanKubeDir:       true,
+		NsByContext:       map[string][]string{},
+		ProtectedPattern:  `(^|[-_.])(prod|production|prd|live)($|[-_.])`,
+		AssistantModel:    "claude-opus-5",
+		LogTail:           5000,
 	}
 }
 
@@ -99,6 +102,9 @@ func normalize(s Settings) Settings {
 	if s.Kubeconfigs == nil {
 		s.Kubeconfigs = []string{}
 	}
+	if s.HiddenKubeconfigs == nil {
+		s.HiddenKubeconfigs = []string{}
+	}
 	if s.NsByContext == nil {
 		s.NsByContext = map[string][]string{}
 	}
@@ -126,6 +132,7 @@ func clone(s Settings) Settings {
 	s.Collapsed = maps.Clone(s.Collapsed)
 	s.SavedViews = slices.Clone(s.SavedViews)
 	s.Kubeconfigs = slices.Clone(s.Kubeconfigs)
+	s.HiddenKubeconfigs = slices.Clone(s.HiddenKubeconfigs)
 	ns := make(map[string][]string, len(s.NsByContext))
 	for k, v := range s.NsByContext {
 		ns[k] = slices.Clone(v)

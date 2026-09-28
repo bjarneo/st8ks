@@ -21,17 +21,23 @@ type LoadOptions struct {
 	Explicit []string
 	// Extra files and folders that the user added in the app.
 	Extra []string
+	// Hidden files are not read. They come from the default location, a
+	// folder or the scan, and the user removed them in the app.
+	Hidden []string
 	// Scan reads every other kubeconfig file in ~/.kube.
 	Scan bool
 }
 
 // Source is one kubeconfig file or folder and what it contributed.
 type Source struct {
-	Path      string `json:"path"`
-	Kind      string `json:"kind"` // flag, env, default, added, folder, scan
-	Contexts  int    `json:"contexts"`
-	Err       string `json:"err,omitempty"`
-	Removable bool   `json:"removable"`
+	Path     string `json:"path"`
+	Kind     string `json:"kind"` // flag, env, default, added, folder, in folder, scan
+	Contexts int    `json:"contexts"`
+	Err      string `json:"err,omitempty"`
+	// Removable is false only for files from the --kubeconfig flag.
+	Removable bool `json:"removable"`
+	// Hidden files were removed in the app. st8ks lists them but does not read them.
+	Hidden bool `json:"hidden,omitempty"`
 }
 
 // ctxEntry is one context and the config it resolves in.
@@ -176,21 +182,36 @@ func loadKubeconfigs(o LoadOptions) loadResult {
 	default:
 		primary = []string{clientcmd.RecommendedHomeFile}
 	}
+	hidden := map[string]bool{}
+	for _, p := range o.Hidden {
+		hidden[absPath(p)] = true
+	}
+	var read []string
 	for i := range primary {
 		primary[i] = absPath(primary[i])
+		if primaryKind == "flag" || !hidden[primary[i]] {
+			read = append(read, primary[i])
+		}
 	}
 
 	// The primary files merge into one config, so a context can use a user
 	// or cluster from another file in the list.
-	rules := &clientcmd.ClientConfigLoadingRules{Precedence: primary}
-	merged, mergeErr := rules.Load()
+	var merged *clientcmdapi.Config
+	var mergeErr error
+	if len(read) > 0 {
+		merged, mergeErr = (&clientcmd.ClientConfigLoadingRules{Precedence: read}).Load()
+	}
 	for _, p := range primary {
 		if seenFile[p] {
 			continue
 		}
 		seenFile[p] = true
+		if primaryKind != "flag" && hidden[p] {
+			res.sources = append(res.sources, Source{Path: p, Kind: primaryKind, Removable: true, Hidden: true})
+			continue
+		}
 		res.watch = append(res.watch, p)
-		src := Source{Path: p, Kind: primaryKind}
+		src := Source{Path: p, Kind: primaryKind, Removable: primaryKind != "flag"}
 		if _, err := os.Stat(p); err != nil {
 			if primaryKind == "default" && os.IsNotExist(err) {
 				continue
@@ -210,14 +231,18 @@ func loadKubeconfigs(o LoadOptions) loadResult {
 		}
 	}
 
-	add := func(path, kind string, removable bool) {
+	add := func(path, kind string) {
 		path = absPath(path)
 		if seenFile[path] {
 			return
 		}
 		seenFile[path] = true
+		if hidden[path] {
+			res.sources = append(res.sources, Source{Path: path, Kind: kind, Removable: true, Hidden: true})
+			return
+		}
 		res.watch = append(res.watch, path)
-		src := Source{Path: path, Kind: kind, Removable: removable}
+		src := Source{Path: path, Kind: kind, Removable: true}
 		cfg, err := loadFile(path)
 		if err != nil {
 			src.Err = err.Error()
@@ -262,18 +287,18 @@ func loadKubeconfigs(o LoadOptions) loadResult {
 				res.sources = append(res.sources, Source{Path: p, Kind: "folder", Removable: true})
 				before := len(res.entries)
 				for _, f := range filesIn(p, 1) {
-					add(f, "in folder", false)
+					add(f, "in folder")
 				}
 				res.sources[at].Contexts = len(res.entries) - before
 			default:
-				add(p, "added", true)
+				add(p, "added")
 			}
 		}
 		if o.Scan {
 			if dir := kubeDir(); dir != "" {
 				res.dirs = append(res.dirs, dir)
 				for _, f := range filesIn(dir, 1) {
-					add(f, "scan", false)
+					add(f, "scan")
 				}
 			}
 		}

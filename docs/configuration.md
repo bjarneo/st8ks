@@ -14,7 +14,7 @@ Click **⚙** in the top bar, or press `Ctrl K` and type `settings`.
 | | Model | `claude-opus-5` |
 | Safety | Protected names, a regular expression | `(^\|[-_.])(prod\|production\|prd\|live)($\|[-_.])` |
 | Logs | Initial lines | 5000 |
-| Kubeconfig | Added files and folders, and the `~/.kube` scan | Scan on |
+| Kubeconfig | Added files and folders, removed files, and the `~/.kube` scan | Scan on |
 
 st8ks also remembers the last context, the selected namespaces of each context, collapsed tree groups and saved views.
 
