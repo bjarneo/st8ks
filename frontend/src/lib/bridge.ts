@@ -42,9 +42,9 @@ export function copyText(text: string): Promise<boolean> {
 }
 
 export function errText(e: unknown): string {
-  if (e instanceof Error) return e.message;
-  if (typeof e === "string") return e;
-  return String(e);
+  const t = e instanceof Error ? e.message : typeof e === "string" ? e : String(e);
+  // Go errors start with a lowercase letter.
+  return t.charAt(0).toUpperCase() + t.slice(1);
 }
 
 const enc = new TextEncoder();

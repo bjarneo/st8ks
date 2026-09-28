@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { call } from "../lib/bridge";
+import { call, errText } from "../lib/bridge";
 import { fail, saveSettings, say, ui } from "../lib/app";
 import { useStore } from "../lib/store";
 import type { Settings } from "../lib/types";
@@ -19,6 +19,14 @@ export function SettingsModal() {
   const version = useStore(ui, (st) => st.version);
   const platform = useStore(ui, (st) => st.platform);
   const [key, setKey] = useState("");
+  const [check, setCheck] = useState<{ ok: boolean; text: string } | null>(null);
+  const [checking, setChecking] = useState(false);
+  const test = () => {
+    setChecking(true);
+    setCheck(null);
+    call<string>("CheckAssistant").then((text) => setCheck({ ok: true, text }), (e) => setCheck({ ok: false, text: errText(e) }))
+      .finally(() => setChecking(false));
+  };
   const [pattern, setPattern] = useState(s.protectedPattern);
   const [tail, setTail] = useState(String(s.logTail));
   const row = (label: string, el: React.ReactNode, hint?: string) => (
@@ -52,13 +60,17 @@ export function SettingsModal() {
                 ui.set({ settings: { ...s, hasKey: st.hasKey } });
                 setKey("");
                 say("API key saved");
+                test();
               }, fail)}>Save</button>
               {s.hasKey && <button className="btn" onClick={() => call<Settings>("SetAPIKey", "").then((st) => {
                 ui.set({ settings: { ...s, hasKey: st.hasKey } });
+                setCheck(null);
                 say("API key removed");
               }, fail)}>Remove</button>}
+              <button className="btn" disabled={checking} onClick={test}>{checking ? "Testing…" : "Test"}</button>
             </div>
-            <span className="small fa">The key is stored in the st8ks settings file, readable only by you. ANTHROPIC_API_KEY and an ant CLI login also work.</span>
+            {check && <div className={check.ok ? "okbox" : "errbox"}>{check.text}</div>}
+            <span className="small fa">The key is stored in the st8ks settings file, readable only by you. A key here goes straight to api.anthropic.com. Without one, st8ks uses ANTHROPIC_API_KEY or an ant CLI login.</span>
           </div>
         ), s.hasKey ? "A key is set." : "No key is set.")}
         {row("Model", (

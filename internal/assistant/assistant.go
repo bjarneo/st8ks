@@ -4,10 +4,14 @@ package assistant
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/anthropics/anthropic-sdk-go"
 	"github.com/anthropics/anthropic-sdk-go/option"
@@ -50,18 +54,57 @@ type Assistant struct {
 	running map[string]context.CancelFunc
 }
 
-// New creates an assistant. key returns the API key from the settings, and
-// the SDK falls back to ANTHROPIC_API_KEY and the ant CLI profile.
+// New creates an assistant. key returns the API key from the settings.
+// Without a key, the SDK reads ANTHROPIC_API_KEY, ANTHROPIC_AUTH_TOKEN,
+// ANTHROPIC_BASE_URL and the ant CLI profile.
 func New(emit func(string, any), key, model func() string) *Assistant {
 	return &Assistant{emit: emit, key: key, model: model, running: map[string]context.CancelFunc{}}
 }
 
+// apiBase is where a key from the settings goes. Tests change it.
+var apiBase = "https://api.anthropic.com/"
+
 func (a *Assistant) client() anthropic.Client {
-	var opts []option.RequestOption
-	if k := strings.TrimSpace(a.key()); k != "" {
-		opts = append(opts, option.WithAPIKey(k))
+	k := strings.TrimSpace(a.key())
+	if k == "" {
+		return anthropic.NewClient()
 	}
-	return anthropic.NewClient(opts...)
+	// The SDK always applies ANTHROPIC_BASE_URL and ANTHROPIC_AUTH_TOKEN from
+	// the environment, and st8ks imports the login shell environment. A
+	// gateway URL or a second credential from there makes the API reject a
+	// valid key, so a key from the settings goes to the API alone.
+	return anthropic.NewClient(
+		option.WithBaseURL(apiBase),
+		option.WithHeaderDel("authorization"),
+		option.WithAPIKey(k),
+	)
+}
+
+// CheckKey tells if a value can be an API key. A Claude subscription token or
+// an Admin API key cannot call the Messages API.
+func CheckKey(key string) error {
+	switch {
+	case strings.HasPrefix(key, "sk-ant-oat"):
+		return errors.New("this is a Claude subscription token, not an API key. Create an API key at https://console.anthropic.com/settings/keys")
+	case strings.HasPrefix(key, "sk-ant-admin"):
+		return errors.New("this is an Admin API key, which cannot send messages. Create an API key at https://console.anthropic.com/settings/keys")
+	case key != "" && strings.ContainsAny(key, " \t\r\n\"'"):
+		return errors.New("the key contains spaces or quotes. Copy the key again from the Anthropic Console")
+	}
+	return nil
+}
+
+// Check sends one request that shows if the key and the model work. It
+// returns a message for the settings.
+func (a *Assistant) Check() (string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+	c := a.client()
+	m, err := c.Models.Get(ctx, a.model(), anthropic.ModelGetParams{})
+	if err != nil {
+		return "", errors.New(describe(err))
+	}
+	return fmt.Sprintf("The key works. %s is available.", m.DisplayName), nil
 }
 
 // Ask streams an answer. contextText holds the cluster data for the issue.
@@ -160,21 +203,59 @@ func (a *Assistant) stream(ctx context.Context, id, contextText string, history 
 func describe(err error) string {
 	var apiErr *anthropic.Error
 	if errors.As(err, &apiErr) {
+		detail := apiMessage(apiErr)
 		switch apiErr.StatusCode {
-		case http.StatusUnauthorized, http.StatusForbidden:
-			return "The Anthropic API rejected the key. Add a valid API key in the assistant settings."
+		case http.StatusUnauthorized:
+			return "The Anthropic API did not accept the API key" + host(apiErr) + ": " + detail + " Check the key in Settings > Assistant."
+		case http.StatusForbidden:
+			return "The API key has no access" + host(apiErr) + ": " + detail
 		case http.StatusTooManyRequests:
 			return "The Anthropic API rate limit is reached. Try again in a minute."
 		case http.StatusNotFound:
-			return "The model is not available for this API key. Choose another model in the assistant settings."
+			return "The model is not available for this API key: " + detail + " Choose another model in Settings > Assistant."
 		}
 		if apiErr.StatusCode >= 500 {
 			return "The Anthropic API is not available right now. Try again later."
 		}
+		return fmt.Sprintf("The Anthropic API returned %d: %s", apiErr.StatusCode, detail)
 	}
 	msg := err.Error()
 	if strings.Contains(msg, "api key") || strings.Contains(msg, "API key") || strings.Contains(msg, "credentials") {
-		return "No Anthropic API key is set. Add one in the assistant settings, or set ANTHROPIC_API_KEY."
+		return "No Anthropic API key is set. Add one in Settings > Assistant, or set ANTHROPIC_API_KEY."
 	}
 	return msg
+}
+
+// apiMessage returns the error text from the API response body.
+func apiMessage(e *anthropic.Error) string {
+	var body struct {
+		Error struct {
+			Type    string `json:"type"`
+			Message string `json:"message"`
+		} `json:"error"`
+	}
+	raw := e.RawJSON()
+	if json.Unmarshal([]byte(raw), &body) == nil && body.Error.Message != "" {
+		msg := strings.TrimSuffix(body.Error.Message, ".") + "."
+		if body.Error.Type != "" {
+			msg = body.Error.Type + ": " + msg
+		}
+		return msg
+	}
+	if raw = strings.TrimSpace(raw); raw != "" {
+		return raw
+	}
+	return http.StatusText(e.StatusCode) + "."
+}
+
+// host names the server when it is not the Anthropic API, for example a
+// gateway from ANTHROPIC_BASE_URL.
+func host(e *anthropic.Error) string {
+	if e.Request == nil || e.Request.URL == nil {
+		return ""
+	}
+	if u, err := url.Parse(apiBase); err == nil && e.Request.URL.Host == u.Host {
+		return ""
+	}
+	return " at " + e.Request.URL.Host
 }

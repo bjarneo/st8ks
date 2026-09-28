@@ -58,10 +58,14 @@ The panel shows the read-only commands that return the same data, so you can che
 
 ### Set up the assistant
 
-The assistant needs access to the Claude API. st8ks uses the first credential it finds:
+The assistant needs an API key for the Claude API. Create one in the [Anthropic Console](https://console.anthropic.com/settings/keys). A Claude subscription token, which starts with `sk-ant-oat`, does not work.
 
-1. The API key in Settings > Assistant. st8ks stores it in the settings file, which only your user can read.
-2. The `ANTHROPIC_API_KEY` environment variable.
+st8ks uses the first credential it finds:
+
+1. The API key in Settings > Assistant. st8ks stores it in the settings file, which only your user can read. This key always goes to `api.anthropic.com`. st8ks ignores `ANTHROPIC_BASE_URL` and `ANTHROPIC_AUTH_TOKEN` for it.
+2. The `ANTHROPIC_API_KEY` environment variable, with `ANTHROPIC_BASE_URL` when it is set.
 3. A login with the `ant` CLI.
+
+To check the setup, click **Test** in Settings > Assistant. st8ks also runs the test after you save a key. The result shows the reason when the key does not work, as the Anthropic API reports it.
 
 The default model is `claude-opus-5`. Change it in Settings > Assistant. When the model declines a request, the API serves it again with the recommended fallback model.

@@ -45,12 +45,19 @@ The first values arrive about 30 seconds after metrics-server starts.
 
 ## The assistant shows an error
 
+Click **Test** in Settings > Assistant. The result gives the reason from the Anthropic API.
+
 | Error | Fix |
 | --- | --- |
 | No Anthropic API key is set | Add a key in Settings > Assistant, or set `ANTHROPIC_API_KEY`. |
-| The Anthropic API rejected the key | Check the key in the Anthropic Console, then save it again. |
+| This is a Claude subscription token | The token from a Claude subscription or from `claude setup-token` is not an API key. Create an API key in the [Anthropic Console](https://console.anthropic.com/settings/keys). |
+| The Anthropic API did not accept the API key | The key is wrong, revoked or from a deleted workspace. Copy the key again from the Anthropic Console and save it. |
+| The Anthropic API did not accept the API key at a host name | st8ks sent `ANTHROPIC_API_KEY` to the server in `ANTHROPIC_BASE_URL`. Save the key in Settings > Assistant, which always uses `api.anthropic.com`. |
+| The API key has no access | The workspace of the key cannot use the model. Check the workspace limits in the Anthropic Console, or choose another model. |
 | The model is not available for this API key | Choose another model in Settings > Assistant. |
 | The rate limit is reached | Wait a minute and ask again. |
+
+Before version 0.1.1, st8ks sent the key from the settings together with `ANTHROPIC_AUTH_TOKEN` and to `ANTHROPIC_BASE_URL`, when your login shell set them. The API then rejected a valid key. Update st8ks to fix this.
 
 ## The window is blank on Linux
 

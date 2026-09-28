@@ -181,11 +181,19 @@ func (a *App) SaveSettings(s settings.Settings) error {
 	})
 }
 
-// SetAPIKey stores the Anthropic API key.
+// SetAPIKey stores the Anthropic API key. An empty key removes it.
 func (a *App) SetAPIKey(key string) (PublicSettings, error) {
-	err := a.st.Update(func(s *settings.Settings) { s.AnthropicKey = strings.TrimSpace(key) })
+	key = strings.TrimSpace(key)
+	if err := assistant.CheckKey(key); err != nil {
+		return a.publicSettings(), err
+	}
+	err := a.st.Update(func(s *settings.Settings) { s.AnthropicKey = key })
 	return a.publicSettings(), err
 }
+
+// CheckAssistant sends one request to the Anthropic API to show if the key
+// and the model work.
+func (a *App) CheckAssistant() (string, error) { return a.ai.Check() }
 
 // ---- Contexts ----
 
