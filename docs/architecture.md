@@ -32,7 +32,7 @@ A version number on each table keeps the snapshot and the deltas consistent. The
 
 ## What the frontend renders
 
-- **Virtual lists.** Rows have a fixed height, so the visible range comes from the scroll offset without measurement. Only about 35 rows exist in the DOM at any time.
+- **Virtual lists.** Rows have a fixed height, so the visible range comes from the scroll offset without measurement. The list renders the visible rows and one screen of rows above and below them, about 80 rows in a full window. The list renders in the same frame as the scroll event, so a fast scroll shows no empty space.
 - **Memoized rows.** A row renders again only when its object, its metrics or its selection changes.
 - **CSS classes, not inline styles,** for everything that repeats.
 - **Fast filter and sort.** The filter text of each row and the natural sort keys are cached per row object. Row objects never change, so the cache stays valid. The default sort compares plain strings, not a collator.

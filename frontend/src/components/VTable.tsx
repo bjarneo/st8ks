@@ -1,4 +1,5 @@
 import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
+import { flushSync } from "react-dom";
 import { age, bytes, clockStore, cpu, pctColor, rel, toneVar } from "../lib/format";
 import type { Col, Row } from "../lib/types";
 
@@ -131,7 +132,8 @@ export function VTable({ rows, cols, metrics, isChecked, isActive, onOpen, onChe
     raf.current = requestAnimationFrame(() => {
       raf.current = 0;
       const el = ref.current;
-      if (el) setView({ top: el.scrollTop, h: el.clientHeight });
+      // Render in this frame, before the paint, so that new rows do not show one frame late.
+      if (el) flushSync(() => setView({ top: el.scrollTop, h: el.clientHeight }));
     });
   }, []);
   useLayoutEffect(() => {
@@ -149,8 +151,12 @@ export function VTable({ rows, cols, metrics, isChecked, isActive, onOpen, onChe
     else if (y + rh > el.scrollTop + el.clientHeight) el.scrollTop = y + rh - el.clientHeight;
   }, [cursor, rh]);
   const grid = (onCheck ? "34px " : "") + cols.map((c) => c.w).join(" ");
-  const start = Math.max(0, Math.floor((view.top - HEAD) / rh) - 8);
-  const end = Math.min(rows.length, Math.ceil((view.top + view.h) / rh) + 8);
+  // The browser clamps the scroll offset when the list gets shorter, but the scroll event comes a frame later.
+  const top = Math.min(view.top, Math.max(0, HEAD + rows.length * rh + 40 - view.h));
+  // Render one screen of extra rows on each side, so that a fast scroll does not show empty space.
+  const over = Math.max(8, Math.ceil(view.h / rh));
+  const start = Math.max(0, Math.floor((top - HEAD) / rh) - over);
+  const end = Math.min(rows.length, Math.ceil((top + view.h) / rh) + over);
   const slice = rows.slice(start, end);
   return (
     <div className="vwrap" ref={ref} onScroll={onScroll}>
