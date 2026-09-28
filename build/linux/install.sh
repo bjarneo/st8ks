@@ -29,8 +29,12 @@ install -Dm755 "$HERE/st8ks" "$BIN"
 install -Dm644 "$HERE/st8ks.png" "$ICON"
 install -Dm644 "$HERE/st8ks.desktop" "$DESKTOP"
 sed -i "s|^Exec=.*|Exec=$BIN|" "$DESKTOP"
-command -v update-desktop-database >/dev/null 2>&1 && update-desktop-database "$PREFIX/share/applications" >/dev/null 2>&1 || true
-command -v gtk-update-icon-cache >/dev/null 2>&1 && gtk-update-icon-cache -q "$PREFIX/share/icons/hicolor" >/dev/null 2>&1 || true
+if command -v update-desktop-database >/dev/null 2>&1; then
+  update-desktop-database "$PREFIX/share/applications" >/dev/null 2>&1 || true
+fi
+if command -v gtk-update-icon-cache >/dev/null 2>&1; then
+  gtk-update-icon-cache -q "$PREFIX/share/icons/hicolor" >/dev/null 2>&1 || true
+fi
 
 echo "Installed st8ks $(timeout 5 "$BIN" --version 2>/dev/null | cut -d' ' -f2) to $BIN"
 case ":$PATH:" in
