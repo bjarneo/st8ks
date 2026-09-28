@@ -1,22 +1,25 @@
 import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { flushSync } from "react-dom";
+import { scale, ui } from "../lib/app";
 import { age, bytes, clockStore, cpu, pctColor, rel, toneVar } from "../lib/format";
+import { useStore } from "../lib/store";
 import type { Col, Row } from "../lib/types";
 
-const HEAD = 30;
 
 export function useNow(): number {
   return useSyncExternalStore(clockStore.subscribe, clockStore.get, clockStore.get);
 }
 
+/** useScale returns the text size factor from the settings. */
+export function useScale(): number {
+  return useStore(ui, (s) => scale(s.settings));
+}
+
+/** useRowHeight returns the row height in pixels. It matches --rh. */
 export function useRowHeight(): number {
-  const [h, setH] = useState(() => (document.documentElement.dataset.density === "comfortable" ? 36 : 28));
-  useEffect(() => {
-    const mo = new MutationObserver(() => setH(document.documentElement.dataset.density === "comfortable" ? 36 : 28));
-    mo.observe(document.documentElement, { attributes: true, attributeFilter: ["data-density"] });
-    return () => mo.disconnect();
-  }, []);
-  return h;
+  const z = useScale();
+  const comfortable = useStore(ui, (s) => s.settings?.density === "comfortable");
+  return Math.round((comfortable ? 36 : 28) * z);
 }
 
 function BarCell({ v, cap, text }: { v: number | undefined; cap: number; text: string }) {
@@ -124,6 +127,9 @@ export interface VTableProps {
 export function VTable({ rows, cols, metrics, isChecked, isActive, onOpen, onCheck, header, cursor = -1, minWidth = 880, empty }: VTableProps) {
   const ref = useRef<HTMLDivElement>(null);
   const rh = useRowHeight();
+  const z = useScale();
+  // The header height matches --hh.
+  const head = Math.round(30 * z);
   const now = useNow();
   const [view, setView] = useState({ top: 0, h: 800 });
   const raf = useRef(0);
@@ -146,23 +152,25 @@ export function VTable({ rows, cols, metrics, isChecked, isActive, onOpen, onChe
   useEffect(() => {
     const el = ref.current;
     if (!el || cursor < 0) return;
-    const y = HEAD + cursor * rh;
-    if (y < el.scrollTop + HEAD) el.scrollTop = y - HEAD;
+    const y = head + cursor * rh;
+    if (y < el.scrollTop + head) el.scrollTop = y - head;
     else if (y + rh > el.scrollTop + el.clientHeight) el.scrollTop = y + rh - el.clientHeight;
-  }, [cursor, rh]);
-  const grid = (onCheck ? "34px " : "") + cols.map((c) => c.w).join(" ");
+  }, [cursor, rh, head]);
+  // Pixel column widths grow with the text size.
+  const px = (w: string) => (z === 1 ? w : w.replace(/(\d+(?:\.\d+)?)px/g, (_, n: string) => Math.round(Number(n) * z) + "px"));
+  const grid = (onCheck ? px("34px") + " " : "") + cols.map((c) => px(c.w)).join(" ");
   // The browser clamps the scroll offset when the list gets shorter, but the scroll event comes a frame later.
-  const top = Math.min(view.top, Math.max(0, HEAD + rows.length * rh + 40 - view.h));
+  const top = Math.min(view.top, Math.max(0, head + rows.length * rh + 40 - view.h));
   // Render one screen of extra rows on each side, so that a fast scroll does not show empty space.
   const over = Math.max(8, Math.ceil(view.h / rh));
-  const start = Math.max(0, Math.floor((top - HEAD) / rh) - over);
+  const start = Math.max(0, Math.floor((top - head) / rh) - over);
   const end = Math.min(rows.length, Math.ceil((top + view.h) / rh) + over);
   const slice = rows.slice(start, end);
   return (
     <div className="vwrap" ref={ref} onScroll={onScroll}>
-      <div style={{ position: "relative", minWidth, height: HEAD + rows.length * rh + 40 }}>
+      <div style={{ position: "relative", minWidth: Math.round(minWidth * z), height: head + rows.length * rh + 40 }}>
         <div className="thead" style={{ gridTemplateColumns: grid }}>{header}</div>
-        <div style={{ position: "absolute", top: HEAD, left: 0, right: 0 }}>
+        <div style={{ position: "absolute", top: head, left: 0, right: 0 }}>
           {slice.map((r, k) => {
             const i = start + k;
             const m = metrics?.get(r.u);
@@ -172,7 +180,7 @@ export function VTable({ rows, cols, metrics, isChecked, isActive, onOpen, onChe
             );
           })}
         </div>
-        {!rows.length && empty && <div style={{ position: "absolute", top: HEAD, left: 0, right: 0 }}>{empty}</div>}
+        {!rows.length && empty && <div style={{ position: "absolute", top: head, left: 0, right: 0 }}>{empty}</div>}
       </div>
     </div>
   );

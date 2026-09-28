@@ -10,6 +10,7 @@ Click **⚙** in the top bar, or press `Ctrl K` and type `settings`.
 | | Density: Compact has 28-pixel rows, Comfortable has 36-pixel rows | Compact |
 | | Detail layout: Drawer, Split or Page | Drawer |
 | | Overview nodes: Table or Node map | Table |
+| | Text size, from 80 % to 150 %. Rows, columns and the terminal grow with the text. | 100 % |
 | Assistant | Anthropic API key | Not set |
 | | Model | `claude-opus-5` |
 | Safety | Protected names, a regular expression | `(^\|[-_.])(prod\|production\|prd\|live)($\|[-_.])` |

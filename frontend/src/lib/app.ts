@@ -91,10 +91,35 @@ export function fail(e: unknown) {
   say(errText(e));
 }
 
+/** TEXT_SIZES are the steps of the text size setting, in percent. */
+export const TEXT_SIZES = [80, 90, 100, 110, 120, 135, 150];
+
+/** scale returns the text size factor, 1 for 100 %. */
+export function scale(s: Settings | null | undefined): number {
+  return (s?.textSize || 100) / 100;
+}
+
 function applyRoot(s: Settings) {
   const r = document.documentElement;
+  const z = scale(s);
   r.dataset.theme = s.theme;
   r.dataset.density = s.density;
+  // Rows, headers and log lines have fixed heights, so the code and the CSS use the same rounded values.
+  r.style.setProperty("--zf", String(z));
+  r.style.setProperty("--rh", Math.round((s.density === "comfortable" ? 36 : 28) * z) + "px");
+  r.style.setProperty("--hh", Math.round(30 * z) + "px");
+  r.style.setProperty("--lh", Math.round(20 * z) + "px");
+}
+
+/** changeTextSize moves the text size one step up or down. 0 resets it. */
+export function changeTextSize(step: -1 | 0 | 1) {
+  const cur = ui.get().settings?.textSize || 100;
+  let next = 100;
+  if (step > 0) next = TEXT_SIZES.find((v) => v > cur) ?? TEXT_SIZES[TEXT_SIZES.length - 1];
+  if (step < 0) next = [...TEXT_SIZES].reverse().find((v) => v < cur) ?? TEXT_SIZES[0];
+  if (next === cur) return;
+  void saveSettings({ textSize: next });
+  say(`Text size ${next} %`);
 }
 
 export async function saveSettings(patch: Partial<Settings>) {

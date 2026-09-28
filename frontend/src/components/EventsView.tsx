@@ -57,7 +57,7 @@ export function EventsView() {
             <div key={g.id} className="card" style={{ padding: "12px 14px", gap: 6 }}>
               <div className="flex"><span className="dot" style={{ background: g.sev === "er" ? "var(--er)" : "var(--wa)" }} /><span style={{ fontWeight: 500 }} className="ell">{g.title}</span></div>
               <span className="meta-mono ell">{g.ns ? g.ns + "/" : ""}{g.obj}</span>
-              <span className="mu" style={{ fontSize: 12 }}>{g.reason}{g.meta ? " · " + g.meta : ""}</span>
+              <span className="mu" style={{ fontSize: "calc(12px * var(--zf))" }}>{g.reason}{g.meta ? " · " + g.meta : ""}</span>
               <div className="flex" style={{ gap: 6, marginTop: 4 }}>
                 <button className="btn xs" onClick={() => openDetail({ kind: g.kind, ns: g.ns, name: g.obj })}>Open</button>
                 <button className="btn xs accent" onClick={() => openAI(g.id, true)}>Explain</button>

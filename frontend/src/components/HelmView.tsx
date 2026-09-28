@@ -109,7 +109,7 @@ export function HelmView() {
       {sel && (
         <div className="side">
           <div className="col" style={{ gap: 4 }}>
-            <div className="flex"><span style={{ fontSize: 15, fontWeight: 600 }}>{sel.name}</span><span className="small" style={{ color: toneVar(sel.tone) }}>● {sel.status}</span></div>
+            <div className="flex"><span style={{ fontSize: "calc(15px * var(--zf))", fontWeight: 600 }}>{sel.name}</span><span className="small" style={{ color: toneVar(sel.tone) }}>● {sel.status}</span></div>
             <span className="meta-mono">{sel.ns} · {sel.chart} · app {sel.app}</span>
           </div>
           <div className="flex" style={{ gap: 6 }}>
@@ -152,9 +152,9 @@ export function HelmView() {
               <div key={r.rev} className="rev">
                 <span className="mono" style={{ fontWeight: 500 }}>{r.rev}</span>
                 <div className="col" style={{ gap: 2 }}>
-                  <span style={{ color: toneVar(r.tone), fontSize: 12 }}>{r.status} · <span className="mu">app {r.app}</span></span>
-                  <span className="mu" style={{ fontSize: 12, lineHeight: 1.4, wordBreak: "break-word" }}>{r.desc}</span>
-                  <span className="mono fa" style={{ fontSize: 10 }}>{r.chart} · {rel(r.updated, now)} ago</span>
+                  <span style={{ color: toneVar(r.tone), fontSize: "calc(12px * var(--zf))" }}>{r.status} · <span className="mu">app {r.app}</span></span>
+                  <span className="mu" style={{ fontSize: "calc(12px * var(--zf))", lineHeight: 1.4, wordBreak: "break-word" }}>{r.desc}</span>
+                  <span className="mono fa" style={{ fontSize: "calc(10px * var(--zf))" }}>{r.chart} · {rel(r.updated, now)} ago</span>
                 </div>
                 {i > 0 && (
                   <button className="btn xs" onClick={() => ask({

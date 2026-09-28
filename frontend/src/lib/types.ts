@@ -97,7 +97,7 @@ export interface Settings {
   theme: "dark" | "light"; density: "compact" | "comfortable"; detailLayout: "drawer" | "split" | "page";
   overviewStyle: "metrics" | "nodemap"; collapsed: Record<string, boolean>; savedViews: SavedView[];
   kubeconfigs: string[]; scanKubeDir: boolean; lastContext: string; nsByContext: Record<string, string[]>; protectedPattern: string;
-  assistantModel: string; logTail: number; hasKey: boolean;
+  assistantModel: string; logTail: number; textSize: number; hasKey: boolean;
 }
 
 export interface Source { path: string; kind: string; contexts: number; err?: string; removable: boolean; hidden?: boolean }

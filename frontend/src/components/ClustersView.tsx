@@ -62,21 +62,21 @@ export function ClustersView() {
             <div key={c.name} className="card" style={{ borderColor: isCur ? "var(--ac)" : undefined }}>
               <div className="flex">
                 <span className="dot lg" style={{ background: statusDot(status) }} />
-                <span className="ell grow" style={{ fontWeight: 600, fontSize: 14 }} title={c.name}>{c.name}</span>
+                <span className="ell grow" style={{ fontWeight: 600, fontSize: "calc(14px * var(--zf))" }} title={c.name}>{c.name}</span>
                 <span className="small" style={{ color: statusDot(status) }}>{status}</span>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "4px 14px", fontSize: 12 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "4px 14px", fontSize: "calc(12px * var(--zf))" }}>
                 <span className="fa">Distribution</span><span>{c.dist || "—"} {c.version}</span>
                 <span className="fa">Region</span><span>{c.region || "—"}</span>
                 <span className="fa">Nodes · Pods</span><span className="mono">{nodes || pods ? `${nodes} · ${pods}` : "—"}</span>
                 <span className="fa">Namespace</span><span className="mono">{c.namespace || "default"}</span>
                 <span className="fa">User</span><span className="mono ell" title={c.user}>{c.user}</span>
               </div>
-              <code className="mono fa ell" style={{ fontSize: 10.5 }} title={c.server}>{c.server}</code>
-              <code className="mono fa ell" style={{ fontSize: 10.5 }} title={c.source}>{shortPath(c.source)}</code>
+              <code className="mono fa ell" style={{ fontSize: "calc(10.5px * var(--zf))" }} title={c.server}>{c.server}</code>
+              <code className="mono fa ell" style={{ fontSize: "calc(10.5px * var(--zf))" }} title={c.source}>{shortPath(c.source)}</code>
               {c.error && status === "Unreachable" && <div className="errbox" style={{ maxHeight: 80, overflow: "auto" }}>{c.error}</div>}
               {isCur ? (
-                <div className="ac" style={{ height: 26, display: "grid", placeItems: "center", fontSize: 12 }}>Current context</div>
+                <div className="ac" style={{ height: 26, display: "grid", placeItems: "center", fontSize: "calc(12px * var(--zf))" }}>Current context</div>
               ) : (
                 <div className="flex" style={{ gap: 6 }}>
                   <button className="btn sm grow" onClick={() => void connect(c.name)}>Switch to this context</button>
@@ -90,7 +90,7 @@ export function ClustersView() {
 
       <div className="col" style={{ gap: 10 }}>
         <div className="flex">
-          <h2 style={{ fontSize: 13, fontWeight: 600 }}>Kubeconfig sources</h2>
+          <h2 style={{ fontSize: "calc(13px * var(--zf))", fontWeight: 600 }}>Kubeconfig sources</h2>
           <span style={{ flex: 1 }} />
           <button className="btn sm" onClick={() => call("ReloadKubeconfigs").then(() => say("Kubeconfig files reloaded"), fail)}>Reload</button>
         </div>
@@ -102,7 +102,7 @@ export function ClustersView() {
             <div key={s.path} className="issue-row" style={{ padding: "8px 14px", paddingLeft: s.kind === "in folder" ? 34 : 14, opacity: s.hidden ? 0.6 : 1 }}>
               <span className="dot sm" style={{ background: s.hidden ? "transparent" : s.err ? "var(--er)" : s.contexts ? "var(--ok)" : "var(--fa)", boxShadow: s.hidden ? "inset 0 0 0 1px var(--fa)" : undefined }} />
               <div className="col grow" style={{ gap: 2 }}>
-                <span className="mono ell" style={{ fontSize: 12, textDecoration: s.hidden ? "line-through" : undefined }} title={s.path}>{shortPath(s.path)}</span>
+                <span className="mono ell" style={{ fontSize: "calc(12px * var(--zf))", textDecoration: s.hidden ? "line-through" : undefined }} title={s.path}>{shortPath(s.path)}</span>
                 <span className="small" style={{ color: s.err && !s.hidden ? "var(--er)" : "var(--fa)" }}>
                   {KIND_LABEL[s.kind] ?? s.kind} · {s.hidden ? "removed from st8ks, the file stays on disk" : `${s.contexts} context${s.contexts === 1 ? "" : "s"}`}{s.err && !s.hidden ? " · " + s.err : ""}
                 </span>

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { call } from "../lib/bridge";
 import {
-  connect, fail, kindLabel, nav, openAI, openDetail, openDock, saveSettings, say, toggleDensity, toggleTheme, ui,
+  changeTextSize, connect, fail, kindLabel, nav, openAI, openDetail, openDock, saveSettings, say, toggleDensity, toggleTheme, ui,
 } from "../lib/app";
 import { useStore } from "../lib/store";
 import { ensureLoaded, table, useTables } from "../lib/tables";
@@ -65,6 +65,9 @@ export function Palette() {
     for (const i of issues) act(`Explain: ${i.title}`, i.reason, () => openAI(i.id, true));
     act("Toggle light / dark theme", "Appearance", toggleTheme);
     act("Toggle compact density", "Appearance", toggleDensity);
+    act("Text size: larger", `Appearance · now ${settings?.textSize ?? 100} % · Ctrl +`, () => changeTextSize(1));
+    act("Text size: smaller", `Appearance · now ${settings?.textSize ?? 100} % · Ctrl −`, () => changeTextSize(-1));
+    act("Text size: default", "Appearance · 100 % · Ctrl 0", () => changeTextSize(0));
     for (const l of ["drawer", "split", "page"] as const) act(`Detail layout: ${l}`, settings?.detailLayout === l ? "current" : "Layout", () => void saveSettings({ detailLayout: l }));
     act("Overview: node map", "Layout", () => void saveSettings({ overviewStyle: "nodemap" }));
     act("Overview: metrics table", "Layout", () => void saveSettings({ overviewStyle: "metrics" }));

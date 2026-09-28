@@ -3,17 +3,17 @@ import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import { WebglAddon } from "@xterm/addon-webgl";
 import { call, errText, fromBase64, toBase64 } from "../lib/bridge";
-import { closeDock, fail, say, ui, type DockTab } from "../lib/app";
+import { closeDock, fail, say, scale, ui, type DockTab } from "../lib/app";
 import { useStore } from "../lib/store";
 import { execRouter, logRouter } from "../lib/streams";
 import type { ContainerModel, ObjectDoc } from "../lib/types";
+import { useScale } from "./VTable";
 
 // ---- Logs ----
 
 interface LogLine { ts: string; lvl: "" | "DEBUG" | "INFO" | "WARN" | "ERROR"; text: string; low: string }
 
 const MAX_LINES = 100_000;
-const LINE_H = 20;
 const errRe = /\b(ERROR|ERR|FATAL|PANIC|CRITICAL|CRIT|EMERG|ALERT)\b|level=(error|fatal|panic)|"level":\s*"(error|fatal|panic)"|\bE\d{4} /i;
 const warnRe = /\b(WARN|WARNING)\b|level=warn|"level":\s*"warn/i;
 const infoRe = /\b(INFO|NOTICE)\b|level=info|"level":\s*"info/i;
@@ -65,6 +65,8 @@ function defaultContainer(cs: ContainerModel[]): string {
 }
 
 function LogsPane({ tab }: { tab: DockTab }) {
+  // The line height matches --lh.
+  const lineH = Math.round(20 * useScale());
   const { doc } = useContainers(tab.ns, tab.pod);
   const containers = doc?.pod?.containers ?? [];
   const [container, setContainer] = useState(tab.container ?? "");
@@ -161,12 +163,12 @@ function LogsPane({ tab }: { tab: DockTab }) {
   }, []);
   const onScroll = () => {
     const el = box.current!;
-    follow.current = el.scrollTop + el.clientHeight >= el.scrollHeight - LINE_H * 2;
+    follow.current = el.scrollTop + el.clientHeight >= el.scrollHeight - lineH * 2;
     setView({ top: el.scrollTop, h: el.clientHeight });
   };
 
-  const start = wrap ? Math.max(0, lines.length - 3000) : Math.max(0, Math.floor(view.top / LINE_H) - 20);
-  const end = wrap ? lines.length : Math.min(lines.length, Math.ceil((view.top + view.h) / LINE_H) + 20);
+  const start = wrap ? Math.max(0, lines.length - 3000) : Math.max(0, Math.floor(view.top / lineH) - 20);
+  const end = wrap ? lines.length : Math.min(lines.length, Math.ceil((view.top + view.h) / lineH) + 20);
   const cur = containers.find((c) => c.name === container);
   const canPrev = (cur?.restarts ?? 0) > 0 || !!cur?.last || previous;
   const followLabel = status === "waiting" ? "Waiting for the container to start…" : status === "ended" ? "Stream ended" : status === "loading" ? "Connecting…" : previous ? "Previous container" : "Following";
@@ -215,9 +217,9 @@ function LogsPane({ tab }: { tab: DockTab }) {
             </div>
           ))
         ) : (
-          <div style={{ height: lines.length * LINE_H + 12, position: "relative", minWidth: "max-content" }}>
+          <div style={{ height: lines.length * lineH + 12, position: "relative", minWidth: "max-content" }}>
             {lines.slice(start, end).map((l, i) => (
-              <div key={start + i} className={"logl" + (l.lvl === "ERROR" ? " err" : "")} style={{ top: (start + i) * LINE_H + 6 }}>
+              <div key={start + i} className={"logl" + (l.lvl === "ERROR" ? " err" : "")} style={{ top: (start + i) * lineH + 6 }}>
                 {ts && <span className="ts">{l.ts}</span>}
                 <span className="lv" style={{ color: l.lvl === "ERROR" ? "var(--er)" : l.lvl === "WARN" ? "var(--wa)" : "var(--fa)" }}>{l.lvl}</span>
                 <span><Highlight text={l.text} q={ql} /></span>
@@ -267,11 +269,12 @@ function TermPane({ tab, visible }: { tab: DockTab; visible: boolean }) {
   const [image, setImage] = useState("busybox:1.36");
   const [target, setTarget] = useState(tab.container ?? "");
   const started = useRef(false);
+  const z = useScale();
 
   // Create the terminal once.
   useEffect(() => {
     const t = new Terminal({
-      fontFamily: '"Geist Mono Variable", "Geist Mono", ui-monospace, monospace', fontSize: 12, lineHeight: 1.2,
+      fontFamily: '"Geist Mono Variable", "Geist Mono", ui-monospace, monospace', fontSize: Math.round(12 * scale(ui.get().settings)), lineHeight: 1.2,
       cursorBlink: true, scrollback: 10000, theme: termTheme(), allowProposedApi: true, macOptionIsMeta: true,
     });
     const f = new FitAddon();
@@ -317,6 +320,20 @@ function TermPane({ tab, visible }: { tab: DockTab; visible: boolean }) {
       t.dispose();
     };
   }, []);
+
+  // Follow the text size setting. The resize observer fits the new size.
+  useEffect(() => {
+    const t = term.current;
+    const size = Math.round(12 * z);
+    if (!t || t.options.fontSize === size) return;
+    t.options.fontSize = size;
+    try {
+      fit.current?.fit();
+    } catch {
+      return;
+    }
+    if (sid.current) void call("ExecResize", sid.current, t.cols, t.rows);
+  }, [z]);
 
   const connect = useCallback(async (container: string, attach: boolean) => {
     const t = term.current!;

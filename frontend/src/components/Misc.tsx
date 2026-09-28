@@ -14,7 +14,7 @@ export function DownView() {
   return (
     <div className="center">
       <div className="col" style={{ maxWidth: 480, gap: 12, alignItems: "flex-start" }}>
-        <div style={{ fontSize: 16, fontWeight: 600 }}>{cl?.context} is unreachable</div>
+        <div style={{ fontSize: "calc(16px * var(--zf))", fontWeight: 600 }}>{cl?.context} is unreachable</div>
         <div className="mu" style={{ lineHeight: 1.55 }}>
           The API server{cl?.server ? " at " + cl.server : ""} did not respond. Cached resources are hidden so you never act on stale state.
         </div>
@@ -34,7 +34,7 @@ export function NoContexts() {
   return (
     <div className="center">
       <div className="col" style={{ maxWidth: 480, gap: 12, alignItems: "flex-start" }}>
-        <div style={{ fontSize: 16, fontWeight: 600 }}>No clusters found</div>
+        <div style={{ fontSize: "calc(16px * var(--zf))", fontWeight: 600 }}>No clusters found</div>
         <div className="mu" style={{ lineHeight: 1.55 }}>
           st8ks reads the kubeconfig files in KUBECONFIG, or ~/.kube/config. Import a kubeconfig file to add its contexts.
         </div>

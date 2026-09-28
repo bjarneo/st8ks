@@ -72,7 +72,7 @@ export function RbacView() {
       </div>
       <div className="grow stack" style={{ overflow: "auto", padding: "16px 20px", display: "flex", flexDirection: "column", gap: 14 }}>
         <div className="flex" style={{ alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
-          <h1 style={{ fontSize: 16, fontWeight: 600 }}>RBAC Explorer</h1>
+          <h1 style={{ fontSize: "calc(16px * var(--zf))", fontWeight: 600 }}>RBAC Explorer</h1>
           {cur && <span className="meta-mono">{cur.kind} · {cur.ns ? cur.ns + "/" : ""}{cur.name}</span>}
           <span style={{ flex: 1 }} />
           <div className="seg mono">{quick.map((n) => <button key={n} className={n === ns ? "on" : ""} onClick={() => setNs(n)}>{n}</button>)}</div>
@@ -88,7 +88,7 @@ export function RbacView() {
             <div className="mr hd"><span>Resource</span>{m.verbs.map((v) => <span key={v} className="mono" style={{ textAlign: "center" }}>{v}</span>)}</div>
             {m.resources.map((r, ri) => (
               <div key={r.name} className="mr bd">
-                <span className="flex mono" style={{ fontSize: 12 }}>{r.name}{r.cluster && <span className="fa" style={{ fontFamily: "var(--sans)", fontSize: 10 }}>cluster</span>}</span>
+                <span className="flex mono" style={{ fontSize: "calc(12px * var(--zf))" }}>{r.name}{r.cluster && <span className="fa" style={{ fontFamily: "var(--sans)", fontSize: "calc(10px * var(--zf))" }}>cluster</span>}</span>
                 {m.cells[ri].map((c, vi) => {
                   const v = m.verbs[vi];
                   const sel = cell && cell[0] === r.name && cell[1] === v;

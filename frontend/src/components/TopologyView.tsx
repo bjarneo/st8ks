@@ -5,6 +5,7 @@ import { toneVar } from "../lib/format";
 import { useStore } from "../lib/store";
 import { ensureLoaded, useTable } from "../lib/tables";
 import type { Topology } from "../lib/types";
+import { useScale } from "./VTable";
 
 const COLW = 230, X0 = 24, W = 190, H = 40;
 
@@ -65,8 +66,11 @@ export function TopologyView() {
   }, [sel, topo]);
 
   const pos = useMemo(() => new Map((topo?.nodes ?? []).map((n) => [n.id, n])), [topo]);
-  const width = X0 + (topo?.cols.length ?? 6) * COLW;
-  const height = (topo?.height ?? 400) + 40;
+  // The layout grows with the text size. It matches the .tnode size in the CSS.
+  const k = useScale();
+  const cw = COLW * k, x0 = X0 * k, w = W * k, h = H * k;
+  const width = x0 + (topo?.cols.length ?? 6) * cw;
+  const height = ((topo?.height ?? 400) + 40) * k;
 
   return (
     <div className="col grow">
@@ -88,19 +92,19 @@ export function TopologyView() {
                 const a = pos.get(e.a), b = pos.get(e.b);
                 if (!a || !b) return null;
                 const [l, r] = a.col <= b.col ? [a, b] : [b, a];
-                const x1 = X0 + l.col * COLW + W, y1 = l.y + H / 2, x2 = X0 + r.col * COLW, y2 = r.y + H / 2;
+                const x1 = x0 + l.col * cw + w, y1 = l.y * k + h / 2, x2 = x0 + r.col * cw, y2 = r.y * k + h / 2;
                 const hot = lit ? lit.has(e.a) && lit.has(e.b) : false;
                 const d = `M${x1} ${y1} C${x1 + 50} ${y1} ${x2 - 50} ${y2} ${x2} ${y2}`;
                 return <path key={i} d={d} fill="none" stroke={hot ? "var(--ac)" : "var(--fa)"} strokeOpacity={lit && !hot ? 0.15 : 0.6}
                   strokeWidth={hot ? 1.6 : 1} strokeDasharray={e.t === "r" ? "4 3" : e.t === "u" ? "1 3" : undefined} />;
               })}
             </svg>
-            {topo.cols.map((c, i) => <div key={c} className="small fa" style={{ position: "absolute", top: 36, left: X0 + i * COLW, fontWeight: 500 }}>{c}</div>)}
+            {topo.cols.map((c, i) => <div key={c} className="small fa" style={{ position: "absolute", top: 36 * k, left: x0 + i * cw, fontWeight: 500 }}>{c}</div>)}
             {topo.nodes.map((n) => {
               const on = !lit || lit.has(n.id);
               return (
                 <div key={n.id} className="tnode" title={`${n.type} ${n.name}\nClick to trace · double-click to open`}
-                  style={{ left: X0 + n.col * COLW, top: n.y, borderColor: sel === n.id ? "var(--ac)" : undefined, borderLeftColor: toneVar(n.tone, "var(--ln)"), opacity: on ? 1 : 0.35 }}
+                  style={{ left: x0 + n.col * cw, top: n.y * k, borderColor: sel === n.id ? "var(--ac)" : undefined, borderLeftColor: toneVar(n.tone, "var(--ln)"), opacity: on ? 1 : 0.35 }}
                   onClick={(e) => {
                     e.stopPropagation();
                     setSel(sel === n.id ? null : n.id);
@@ -109,8 +113,8 @@ export function TopologyView() {
                     e.stopPropagation();
                     openDetail({ kind: n.kind, ns: n.ns, name: n.name });
                   }}>
-                  <span className="ell" style={{ fontSize: 11.5, fontWeight: 500 }}>{n.name}</span>
-                  <span className="mono fa ell" style={{ fontSize: 10 }}>{n.type}{n.sub ? " · " + n.sub : ""}</span>
+                  <span className="ell" style={{ fontSize: "calc(11.5px * var(--zf))", fontWeight: 500 }}>{n.name}</span>
+                  <span className="mono fa ell" style={{ fontSize: "calc(10px * var(--zf))" }}>{n.type}{n.sub ? " · " + n.sub : ""}</span>
                 </div>
               );
             })}

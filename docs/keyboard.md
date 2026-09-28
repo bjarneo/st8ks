@@ -7,6 +7,9 @@ On macOS, use `⌘` where the table shows `Ctrl`.
 | Key | Action |
 | --- | --- |
 | `Ctrl K` | Open or close the command palette |
+| `Ctrl +` | Make the text larger |
+| `Ctrl -` | Make the text smaller |
+| `Ctrl 0` | Set the text size back to 100 % |
 | `Esc` | Close the top dialog, the detail panel or the assistant, or leave a text box |
 | `a` | Show or hide the assistant |
 | `/` | Focus the filter of the list |

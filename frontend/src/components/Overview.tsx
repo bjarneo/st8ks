@@ -185,7 +185,7 @@ export function Overview() {
       </div>
       <div className="col" style={{ gap: 10 }}>
         <div className="flex" style={{ gap: 10 }}>
-          <h2 style={{ fontSize: 13, fontWeight: 600 }}>Needs attention</h2>
+          <h2 style={{ fontSize: "calc(13px * var(--zf))", fontWeight: 600 }}>Needs attention</h2>
           <span className="meta-mono">{issues.length}</span>
           <span style={{ flex: 1 }} />
           {issues.length > 0 && <button className="btn sm" style={{ color: "var(--ac)" }} onClick={() => openAI(null)}>Explain with Assistant</button>}
@@ -209,7 +209,7 @@ export function Overview() {
       </div>
       <div className="col" style={{ gap: 10 }}>
         <div className="flex">
-          <h2 style={{ fontSize: 13, fontWeight: 600 }}>Nodes</h2>
+          <h2 style={{ fontSize: "calc(13px * var(--zf))", fontWeight: 600 }}>Nodes</h2>
           <span style={{ flex: 1 }} />
           <div className="seg">
             <button className={style !== "nodemap" ? "on" : ""} onClick={() => void saveSettings({ overviewStyle: "metrics" })}>Table</button>

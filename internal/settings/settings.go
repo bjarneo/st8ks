@@ -34,6 +34,8 @@ type Settings struct {
 	AnthropicKey      string              `json:"anthropicKey,omitempty"`
 	AssistantModel    string              `json:"assistantModel"`
 	LogTail           int                 `json:"logTail"`
+	// TextSize scales the text of the interface, in percent.
+	TextSize int `json:"textSize"`
 }
 
 // Defaults returns the settings for a first start.
@@ -52,6 +54,7 @@ func Defaults() Settings {
 		ProtectedPattern:  `(^|[-_.])(prod|production|prd|live)($|[-_.])`,
 		AssistantModel:    "claude-opus-5",
 		LogTail:           5000,
+		TextSize:          100,
 	}
 }
 
@@ -116,6 +119,14 @@ func normalize(s Settings) Settings {
 	}
 	if s.LogTail <= 0 {
 		s.LogTail = d.LogTail
+	}
+	switch {
+	case s.TextSize == 0:
+		s.TextSize = d.TextSize
+	case s.TextSize < 80:
+		s.TextSize = 80
+	case s.TextSize > 150:
+		s.TextSize = 150
 	}
 	return s
 }

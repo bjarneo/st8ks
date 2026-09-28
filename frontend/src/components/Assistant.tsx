@@ -136,7 +136,7 @@ export function Assistant() {
         {issue && (
           <>
             <div className="col" style={{ gap: 4 }}>
-              <span style={{ fontWeight: 600, fontSize: 13 }}>{issue.title}</span>
+              <span style={{ fontWeight: 600, fontSize: "calc(13px * var(--zf))" }}>{issue.title}</span>
               <a href="#" className="mono small" onClick={(e) => {
                 e.preventDefault();
                 openDetail({ kind: issue.kind, ns: issue.ns, name: issue.obj });
@@ -163,7 +163,7 @@ export function Assistant() {
             {cmds.length > 0 && (
               <div className="col" style={{ gap: 4 }}>
                 <span className="sec-label">Read-only commands</span>
-                {cmds.map((cmd) => <code key={cmd} className="mono mu" style={{ fontSize: 10.5, lineHeight: 1.5, wordBreak: "break-all" }}>$ {cmd}</code>)}
+                {cmds.map((cmd) => <code key={cmd} className="mono mu" style={{ fontSize: "calc(10.5px * var(--zf))", lineHeight: 1.5, wordBreak: "break-all" }}>$ {cmd}</code>)}
               </div>
             )}
             {!c.msgs.length && !c.busy && (
@@ -178,7 +178,7 @@ export function Assistant() {
           </div>
         ))}
         {c.err && (
-          <div className="errbox" style={{ fontFamily: "var(--sans)", fontSize: 12 }}>
+          <div className="errbox" style={{ fontFamily: "var(--sans)", fontSize: "calc(12px * var(--zf))" }}>
             {c.err}
             {!hasKey && <div style={{ marginTop: 8 }}><button className="btn xs" onClick={() => ui.set({ settingsOpen: true })}>Add API key</button></div>}
           </div>

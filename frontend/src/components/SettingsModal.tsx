@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { call, errText } from "../lib/bridge";
-import { fail, saveSettings, say, ui } from "../lib/app";
+import { fail, saveSettings, say, TEXT_SIZES, ui } from "../lib/app";
 import { useStore } from "../lib/store";
 import type { Settings } from "../lib/types";
 
@@ -43,11 +43,13 @@ export function SettingsModal() {
     <>
       <div className="modal-scrim" onClick={() => ui.set({ settingsOpen: false })} />
       <div className="modal wide">
-        <div className="flex"><span style={{ fontSize: 14, fontWeight: 600 }} className="grow">Settings</span>
+        <div className="flex"><span style={{ fontSize: "calc(14px * var(--zf))", fontWeight: 600 }} className="grow">Settings</span>
           <button className="btn icon sm ghost fa" onClick={() => ui.set({ settingsOpen: false })}>✕</button></div>
         <div className="sec-label">Appearance</div>
         {row("Theme", <Seg value={s.theme} options={[["dark", "Dark"], ["light", "Light"]]} onChange={(v) => save({ theme: v })} />)}
         {row("Density", <Seg value={s.density} options={[["compact", "Compact"], ["comfortable", "Comfortable"]]} onChange={(v) => save({ density: v })} />)}
+        {row("Text size", <Seg value={String(s.textSize || 100)} options={TEXT_SIZES.map((v) => [String(v), v + " %"] as [string, string])} onChange={(v) => save({ textSize: Number(v) })} />,
+          `${platform === "darwin" ? "Cmd" : "Ctrl"} + and ${platform === "darwin" ? "Cmd" : "Ctrl"} − change it anywhere. ${platform === "darwin" ? "Cmd" : "Ctrl"} 0 resets it.`)}
         {row("Detail layout", <Seg value={s.detailLayout} options={[["drawer", "Drawer"], ["split", "Split"], ["page", "Page"]]} onChange={(v) => save({ detailLayout: v })} />)}
         {row("Overview nodes", <Seg value={s.overviewStyle} options={[["metrics", "Table"], ["nodemap", "Node map"]]} onChange={(v) => save({ overviewStyle: v })} />)}
 

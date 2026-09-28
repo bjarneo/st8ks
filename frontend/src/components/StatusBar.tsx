@@ -30,7 +30,7 @@ export function StatusBar() {
               <div className="menu" style={{ top: "auto", bottom: 22, width: 360, fontFamily: "var(--sans)" }}>
                 {fw.map((f) => (
                   <div key={f.id} className="menu-item" style={{ cursor: "default" }}>
-                    <a className="mono ell grow" style={{ fontSize: 11.5 }} href="#" onClick={(e) => {
+                    <a className="mono ell grow" style={{ fontSize: "calc(11.5px * var(--zf))" }} href="#" onClick={(e) => {
                       e.preventDefault();
                       call("OpenURL", `http://localhost:${f.local}`);
                     }}>localhost:{f.local} → {f.ns}/{f.pod}:{f.remote}</a>

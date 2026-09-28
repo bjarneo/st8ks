@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect } from "react";
-import { closeDetail, fail, init, openDock, ui } from "../lib/app";
+import { changeTextSize, closeDetail, fail, init, openDock, ui } from "../lib/app";
 import { useStore } from "../lib/store";
 import { setWatched } from "../lib/tables";
 import { TopBar } from "./TopBar";
@@ -56,6 +56,11 @@ function useKeyboard() {
         e.preventDefault();
         ui.set({ pal: !s.pal });
         return;
+      }
+      // Ctrl or Cmd with +, - or 0 changes the text size, as in a browser.
+      if ((e.metaKey || e.ctrlKey) && !e.altKey && ["=", "+", "-", "_", "0"].includes(e.key)) {
+        e.preventDefault();
+        return changeTextSize(e.key === "0" ? 0 : e.key === "-" || e.key === "_" ? -1 : 1);
       }
       if (s.pal) return;
       if (e.key === "Escape") {

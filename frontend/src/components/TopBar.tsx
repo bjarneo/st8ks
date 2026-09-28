@@ -42,7 +42,7 @@ function NsMenu({ close }: { close: () => void }) {
         <div className="menu-item" onClick={() => setNs([])}><span className="mark">{sel.length ? "" : "✓"}</span>All namespaces</div>
         <div className="menu-sep" />
         {names.map((n) => (
-          <div key={n} className="menu-item mono" style={{ fontSize: 12 }} onClick={() => toggle(n)}>
+          <div key={n} className="menu-item mono" style={{ fontSize: "calc(12px * var(--zf))" }} onClick={() => toggle(n)}>
             <span className="mark" style={{ fontFamily: "var(--sans)" }}>{sel.includes(n) ? "✓" : ""}</span>{n}
           </div>
         ))}

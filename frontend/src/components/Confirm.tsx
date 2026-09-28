@@ -39,17 +39,17 @@ export function Confirm() {
       <div className="modal" onKeyDown={(e) => {
         if (e.key === "Enter" && (e.target as HTMLElement).tagName === "INPUT") void go();
       }}>
-        <div style={{ fontSize: 14, fontWeight: 600 }}>{cf.title}</div>
+        <div style={{ fontSize: "calc(14px * var(--zf))", fontWeight: 600 }}>{cf.title}</div>
         <div className="itemlist">{cf.items.map((i) => <span key={i}>{i}</span>)}</div>
         <p style={{ margin: 0, lineHeight: 1.5 }} className="mu">{cf.note}</p>
         {cf.input && (
-          <label className="col" style={{ gap: 6, fontSize: 12 }}>
+          <label className="col" style={{ gap: 6, fontSize: "calc(12px * var(--zf))" }}>
             <span className="mu">{cf.input.label}</span>
             <input className="input mono" autoFocus type={cf.input.type ?? "text"} min={0} value={input} onChange={(e) => setInput(e.target.value)} />
           </label>
         )}
         {cf.word && (
-          <label className="col" style={{ gap: 6, fontSize: 12 }}>
+          <label className="col" style={{ gap: 6, fontSize: "calc(12px * var(--zf))" }}>
             <span className="mu">This touches a protected context or namespace. Type <b className="mono" style={{ color: "var(--tx)" }}>{cf.word}</b> to confirm.</span>
             <input className="input mono" autoFocus={!cf.input} value={typed} onChange={(e) => setTyped(e.target.value)} spellCheck={false} />
           </label>
