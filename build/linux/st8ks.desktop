@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=st8ks
+GenericName=Kubernetes Client
+Comment=Live Kubernetes resources, logs, shells and fixes
+Exec=st8ks
+Icon=st8ks
+Terminal=false
+Categories=Development;Utility;
+Keywords=kubernetes;k8s;kubectl;helm;cluster;
+StartupWMClass=st8ks

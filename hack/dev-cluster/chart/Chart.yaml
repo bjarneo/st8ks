@@ -1,0 +1,4 @@
+apiVersion: v2
+name: acme-service
+version: 1.8.0
+appVersion: "1.27"

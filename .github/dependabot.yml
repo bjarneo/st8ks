@@ -1,0 +1,27 @@
+version: 2
+updates:
+  - package-ecosystem: gomod
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      # client-go, the API types and the Helm SDK must move together.
+      kubernetes:
+        patterns: ["k8s.io/*", "sigs.k8s.io/*", "helm.sh/*"]
+      go-minor:
+        update-types: [minor, patch]
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: weekly
+    groups:
+      codemirror:
+        patterns: ["@codemirror/*", "@lezer/*"]
+      xterm:
+        patterns: ["@xterm/*"]
+      npm-minor:
+        update-types: [minor, patch]
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

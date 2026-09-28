@@ -1,0 +1,16 @@
+{
+  "$schema": "https://wails.io/schemas/config.v2.json",
+  "name": "st8ks",
+  "outputfilename": "st8ks",
+  "frontend:install": "npm install",
+  "frontend:build": "npm run build",
+  "frontend:dev:watcher": "npm run dev",
+  "frontend:dev:serverUrl": "auto",
+  "info": {
+    "productName": "st8ks",
+    "productVersion": "0.1.0",
+    "comments": "A Kubernetes desktop client",
+    "companyName": "st8ks",
+    "copyright": "st8ks contributors"
+  }
+}

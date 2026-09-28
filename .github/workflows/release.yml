@@ -1,0 +1,350 @@
+name: Release
+
+# A tag that starts with "v" builds every platform and publishes a GitHub
+# release. A tag with a hyphen, such as v1.2.0-beta.1, publishes a
+# prerelease. Run the workflow by hand to build every platform without a
+# release, for example to test a change to this file.
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build ${{ matrix.target }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: linux-amd64
+            runner: ubuntu-24.04
+            platform: linux/amd64
+            tags: webkit2_41
+          - target: linux-arm64
+            runner: ubuntu-24.04-arm
+            platform: linux/arm64
+            tags: webkit2_41
+            # Hosted Arm runners can be missing on some plans. The release
+            # then ships without this asset instead of failing.
+            optional: true
+          - target: darwin-universal
+            runner: macos-26
+            platform: darwin/universal
+            tags: ""
+          - target: windows-amd64
+            runner: windows-2025
+            platform: windows/amd64
+            tags: ""
+            nsis: true
+          - target: windows-arm64
+            runner: windows-2025
+            platform: windows/arm64
+            tags: ""
+            nsis: true
+    runs-on: ${{ matrix.runner }}
+    continue-on-error: ${{ matrix.optional == true }}
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install GTK and WebKitGTK headers (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev imagemagick
+
+      - name: Install NSIS (Windows)
+        if: matrix.nsis
+        shell: pwsh
+        run: |
+          if (-not (Get-Command makensis -ErrorAction SilentlyContinue)) {
+            choco install nsis -y --no-progress
+          }
+          "C:\Program Files (x86)\NSIS" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Install the Wails CLI
+        run: |
+          WAILS_VERSION="$(go list -m -f '{{.Version}}' github.com/wailsapp/wails/v2)"
+          go install "github.com/wailsapp/wails/v2/cmd/wails@${WAILS_VERSION}"
+          echo "WAILS_VERSION=${WAILS_VERSION}" >> "$GITHUB_ENV"
+
+      - name: Set the version
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            VERSION="$GITHUB_REF_NAME"
+          else
+            VERSION="dev-${GITHUB_SHA::7}"
+          fi
+          # macOS and Windows version fields accept only numbers.
+          NUMERIC="${VERSION#v}"
+          NUMERIC="${NUMERIC%%-*}"
+          [[ "$NUMERIC" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || NUMERIC="0.0.0"
+          echo "VERSION=${VERSION}" >> "$GITHUB_ENV"
+          echo "NUMERIC_VERSION=${NUMERIC}" >> "$GITHUB_ENV"
+          # GITHUB_ENV applies to later steps, so export for this one too.
+          export NUMERIC_VERSION="$NUMERIC"
+          node -e '
+            const fs = require("fs");
+            const j = JSON.parse(fs.readFileSync("wails.json", "utf8"));
+            j.info.productVersion = process.env.NUMERIC_VERSION;
+            fs.writeFileSync("wails.json", JSON.stringify(j, null, 2) + "\n");
+          '
+          echo "Building st8ks ${VERSION} (${NUMERIC})"
+
+      - name: Build the frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+
+      - name: Build the app
+        run: |
+          NSIS=()
+          if [ "${{ matrix.nsis }}" = "true" ]; then NSIS=(-nsis); fi
+          wails build -s -clean -trimpath \
+            -platform "${{ matrix.platform }}" \
+            -tags "${{ matrix.tags }}" \
+            -ldflags "-s -w -X main.version=${VERSION}" \
+            "${NSIS[@]}"
+          ls -la build/bin
+
+      - name: Check the binary
+        run: |
+          case "$RUNNER_OS" in
+            Linux) OUT="$(./build/bin/st8ks --version)" ;;
+            macOS) OUT="$(./build/bin/st8ks.app/Contents/MacOS/st8ks --version)" ;;
+            *) exit 0 ;;
+          esac
+          echo "$OUT"
+          test "$OUT" = "st8ks ${VERSION}"
+
+      - name: Package
+        env:
+          MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
+          MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+          MACOS_SIGNING_IDENTITY: ${{ secrets.MACOS_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+        run: |
+          scripts/package.sh "${{ matrix.target }}"
+          ls -la dist
+
+      - name: Record build details
+        env:
+          TARGET: ${{ matrix.target }}
+          PLATFORM: ${{ matrix.platform }}
+          TAGS: ${{ matrix.tags }}
+          HAS_MACOS_CERT: ${{ secrets.MACOS_CERTIFICATE != '' }}
+          HAS_NOTARY: ${{ secrets.APPLE_ID != '' }}
+        run: |
+          case "${{ matrix.target }}" in
+            darwin-*)
+              if [ "$HAS_MACOS_CERT" = "true" ] && [ "$HAS_NOTARY" = "true" ]; then SIGNING="Developer ID, notarized"
+              elif [ "$HAS_MACOS_CERT" = "true" ]; then SIGNING="Developer ID"
+              else SIGNING="ad hoc"; fi ;;
+            *) SIGNING="none" ;;
+          esac
+          export SIGNING
+          # The script uses JavaScript template literals in single quotes.
+          # shellcheck disable=SC2016
+          node -e '
+            const fs = require("fs");
+            const { execSync } = require("child_process");
+            const sh = (c) => execSync(c, { encoding: "utf8" }).trim();
+            const info = {
+              target: process.env.TARGET,
+              runner: `${process.env.ImageOS || process.env.RUNNER_OS} ${process.env.ImageVersion || ""}`.trim(),
+              arch: process.env.RUNNER_ARCH,
+              go: sh("go env GOVERSION"),
+              node: process.version,
+              wails: process.env.WAILS_VERSION,
+              platform: process.env.PLATFORM,
+              tags: process.env.TAGS || "none",
+              signing: process.env.SIGNING,
+              files: fs.readdirSync("dist").filter((f) => f.startsWith("st8ks-")),
+            };
+            fs.writeFileSync(`dist/build-${info.target}.json`, JSON.stringify(info, null, 2));
+            console.log(info);
+          '
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: st8ks-${{ matrix.target }}
+          path: dist/*
+          if-no-files-found: error
+
+  release:
+    name: Publish release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    steps:
+      - name: Classify release
+        id: release-type
+        run: |
+          case "${GITHUB_REF_NAME}" in
+            *-*) echo "prerelease=true" >> "$GITHUB_OUTPUT" ;;
+            *) echo "prerelease=false" >> "$GITHUB_OUTPUT" ;;
+          esac
+
+      - name: Checkout
+        uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v8.0.1
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Generate checksums
+        run: |
+          cd artifacts
+          sha256sum st8ks-* > checksums.txt
+          cat checksums.txt
+
+      - name: Attest build provenance
+        if: ${{ !github.event.repository.private }}
+        uses: actions/attest-build-provenance@v4.2.2
+        with:
+          subject-path: artifacts/st8ks-*
+
+      - name: Generate release notes
+        env:
+          REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          PRIVATE: ${{ github.event.repository.private }}
+        run: |
+          TAG="$GITHUB_REF_NAME"
+
+          if [[ "$TAG" == *-* ]]; then
+            PREV_TAG=$(git describe --tags --abbrev=0 "${TAG}^" 2>/dev/null || echo "")
+          else
+            # A final release lists every change since the last final release,
+            # including the changes that its betas shipped.
+            PREV_TAG=""
+            while IFS= read -r candidate; do
+              case "$candidate" in
+                v*-*) ;;
+                v*) PREV_TAG="$candidate"; break ;;
+              esac
+            done < <(git tag --merged "${TAG}^" --sort=-version:refname 2>/dev/null)
+          fi
+
+          if [ -z "$PREV_TAG" ]; then RANGE="$TAG"; else RANGE="${PREV_TAG}..${TAG}"; fi
+
+          CHANGELOG=""
+          while IFS='|' read -r hash title author || [ -n "$hash" ]; do
+            [ -z "$hash" ] && continue
+            short_hash="${hash:0:7}"
+            username=$(gh api "repos/${REPO}/commits/$hash" --jq '.author.login' 2>/dev/null || echo "")
+            if [ -n "$username" ]; then
+              author_info="$author ([@$username](https://github.com/$username))"
+            else
+              author_info="$author"
+            fi
+            CHANGELOG="${CHANGELOG}- $title by $author_info ([\`$short_hash\`](https://github.com/${REPO}/commit/$hash))"$'\n'
+          done < <(git log "$RANGE" --no-merges --pretty=format:"%H|%s|%an")
+
+          dl() { echo "https://github.com/${REPO}/releases/download/${TAG}/$1"; }
+          have() { [ -f "artifacts/$1" ]; }
+
+          {
+            echo "## What's Changed"
+            echo ""
+            echo "$CHANGELOG"
+            echo "## Downloads"
+            echo ""
+            echo "| Platform | File | Notes |"
+            echo "| --- | --- | --- |"
+            have st8ks-darwin-universal.dmg && echo "| macOS, Apple silicon and Intel | [st8ks-darwin-universal.dmg]($(dl st8ks-darwin-universal.dmg)) | Drag st8ks to Applications. |"
+            have st8ks-darwin-universal.zip && echo "| macOS, Apple silicon and Intel | [st8ks-darwin-universal.zip]($(dl st8ks-darwin-universal.zip)) | The same app as a zip archive. |"
+            have st8ks-windows-amd64-setup.exe && echo "| Windows x64 | [st8ks-windows-amd64-setup.exe]($(dl st8ks-windows-amd64-setup.exe)) | Installer with a Start menu entry. |"
+            have st8ks-windows-amd64.zip && echo "| Windows x64 | [st8ks-windows-amd64.zip]($(dl st8ks-windows-amd64.zip)) | Portable. Unzip and run st8ks.exe. |"
+            have st8ks-windows-arm64-setup.exe && echo "| Windows Arm | [st8ks-windows-arm64-setup.exe]($(dl st8ks-windows-arm64-setup.exe)) | Installer with a Start menu entry. |"
+            have st8ks-windows-arm64.zip && echo "| Windows Arm | [st8ks-windows-arm64.zip]($(dl st8ks-windows-arm64.zip)) | Portable. Unzip and run st8ks.exe. |"
+            have st8ks-linux-amd64.tar.gz && echo "| Linux x86-64 | [st8ks-linux-amd64.tar.gz]($(dl st8ks-linux-amd64.tar.gz)) | Needs WebKitGTK 4.1 and glibc 2.39. Run install.sh. |"
+            have st8ks-linux-arm64.tar.gz && echo "| Linux Arm64 | [st8ks-linux-arm64.tar.gz]($(dl st8ks-linux-arm64.tar.gz)) | Needs WebKitGTK 4.1 and glibc 2.39. Run install.sh. |"
+            echo ""
+            echo "See the [installation guide](https://github.com/${REPO}/blob/${TAG}/docs/installation.md) for each platform."
+            echo ""
+            echo "## How this release was built"
+            echo ""
+            echo "Workflow run: ${RUN_URL}. Commit: \`${GITHUB_SHA::7}\`."
+            echo ""
+            echo "| Target | Runner | Go | Node.js | Wails | Build tags | Signing |"
+            echo "| --- | --- | --- | --- | --- | --- | --- |"
+            for f in artifacts/build-*.json; do
+              jq -r '"| \(.target) | \(.runner) \(.arch) | \(.go) | \(.node) | \(.wails) | \(.tags) | \(.signing) |"' "$f"
+            done
+            echo ""
+            echo "Each target runs \`npm ci\`, builds the frontend with Vite, and runs \`wails build -trimpath\` with \`-X main.version=${TAG}\`. \`scripts/package.sh\` then packages the output. The Windows installers come from NSIS."
+            echo ""
+            echo "## Verify"
+            echo ""
+            echo "Compare the SHA256 checksum of your download with the list below:"
+            echo ""
+            echo '```sh'
+            echo "sha256sum -c checksums.txt --ignore-missing"
+            echo '```'
+            if [ "$PRIVATE" != "true" ]; then
+              echo ""
+              echo "Every file has a build provenance attestation. Check that GitHub Actions built it from this repository:"
+              echo ""
+              echo '```sh'
+              echo "gh attestation verify st8ks-linux-amd64.tar.gz --repo ${REPO}"
+              echo '```'
+            fi
+            echo ""
+            echo "## Checksums (SHA256)"
+            echo ""
+            echo '```'
+            cat artifacts/checksums.txt
+            echo '```'
+            echo ""
+            if [ -n "$PREV_TAG" ]; then
+              echo "**Full Changelog**: https://github.com/${REPO}/compare/${PREV_TAG}...${TAG}"
+            fi
+          } > release_notes.md
+          cat release_notes.md
+
+      - name: Create release
+        uses: softprops/action-gh-release@v3.0.3
+        with:
+          body_path: release_notes.md
+          prerelease: ${{ steps.release-type.outputs.prerelease }}
+          files: |
+            artifacts/st8ks-*
+            artifacts/checksums.txt

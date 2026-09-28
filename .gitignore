@@ -1,0 +1,8 @@
+build/bin
+node_modules
+frontend/dist/*
+!frontend/dist/.gitkeep
+frontend/wailsjs
+/dist/
+*.log
+frontend/package.json.md5
