@@ -5,7 +5,7 @@ go 1.27.1
 require (
 	github.com/anthropics/anthropic-sdk-go v1.75.0
 	github.com/creack/pty v1.1.24
-	github.com/go-logr/logr v1.4.3
+	github.com/go-logr/logr v1.4.4
 	github.com/wailsapp/wails/v2 v2.16.0
 	go.yaml.in/yaml/v3 v3.0.5
 	helm.sh/helm/v3 v3.22.0
