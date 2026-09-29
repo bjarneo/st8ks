@@ -36,6 +36,14 @@ type Settings struct {
 	LogTail           int                 `json:"logTail"`
 	// TextSize scales the text of the interface, in percent.
 	TextSize int `json:"textSize"`
+	// Mode is the view at start: cluster or ide.
+	Mode string `json:"mode"`
+	// IdeWorkspace is the folder that the IDE opened last.
+	IdeWorkspace string `json:"ideWorkspace"`
+	// IdeRecent lists the folders that the IDE opened, newest first.
+	IdeRecent        []string `json:"ideRecent"`
+	IdeHideInspector bool     `json:"ideHideInspector"`
+	IdeLensOff       bool     `json:"ideLensOff"`
 }
 
 // Defaults returns the settings for a first start.
@@ -55,6 +63,8 @@ func Defaults() Settings {
 		AssistantModel:    "claude-opus-5",
 		LogTail:           5000,
 		TextSize:          100,
+		Mode:              "cluster",
+		IdeRecent:         []string{},
 	}
 }
 
@@ -120,6 +130,12 @@ func normalize(s Settings) Settings {
 	if s.LogTail <= 0 {
 		s.LogTail = d.LogTail
 	}
+	if s.Mode != "ide" {
+		s.Mode = d.Mode
+	}
+	if s.IdeRecent == nil {
+		s.IdeRecent = []string{}
+	}
 	switch {
 	case s.TextSize == 0:
 		s.TextSize = d.TextSize
@@ -144,6 +160,7 @@ func clone(s Settings) Settings {
 	s.SavedViews = slices.Clone(s.SavedViews)
 	s.Kubeconfigs = slices.Clone(s.Kubeconfigs)
 	s.HiddenKubeconfigs = slices.Clone(s.HiddenKubeconfigs)
+	s.IdeRecent = slices.Clone(s.IdeRecent)
 	ns := make(map[string][]string, len(s.NsByContext))
 	for k, v := range s.NsByContext {
 		ns[k] = slices.Clone(v)

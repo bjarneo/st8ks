@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { changeTextSize, closeDetail, fail, init, openDock, ui } from "../lib/app";
 import { useStore } from "../lib/store";
 import { setWatched } from "../lib/tables";
@@ -23,11 +23,17 @@ import { ErrorBoundary } from "./ErrorBoundary";
 
 // The dock holds xterm.js, so it loads when the first log or shell opens.
 const Dock = lazy(() => import("./Dock").then((m) => ({ default: m.Dock })));
+// The IDE holds CodeMirror and xterm.js, so it loads when it opens first.
+const Ide = lazy(() => import("./ide/Ide").then((m) => ({ default: m.Ide })));
 
 function useWatchManager() {
   const key = useStore(ui, (s) => {
     if (s.cluster?.status !== "Connected" || !s.tree.length) return "";
     const k = new Set<string>();
+    if (s.settings?.mode === "ide") {
+      for (const x of s.ideWatch) if (s.kinds[x]) k.add(x);
+      return s.cluster.context + "|" + [...k].sort().join(",");
+    }
     if (s.view === "list") k.add(s.kind);
     if (s.view === "overview") {
       k.add("Nodes");
@@ -52,15 +58,20 @@ function useKeyboard() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const s = ui.get();
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
-        e.preventDefault();
-        ui.set({ pal: !s.pal });
-        return;
-      }
       // Ctrl or Cmd with +, - or 0 changes the text size, as in a browser.
       if ((e.metaKey || e.ctrlKey) && !e.altKey && ["=", "+", "-", "_", "0"].includes(e.key)) {
         e.preventDefault();
         return changeTextSize(e.key === "0" ? 0 : e.key === "-" || e.key === "_" ? -1 : 1);
+      }
+      // The IDE has its own keys.
+      if (s.settings?.mode === "ide") {
+        if (e.key === "Escape" && (s.cf || s.settingsOpen)) ui.set({ cf: null, settingsOpen: false });
+        return;
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        ui.set({ pal: !s.pal });
+        return;
       }
       if (s.pal) return;
       if (e.key === "Escape") {
@@ -131,23 +142,41 @@ export function App() {
   const pal = useStore(ui, (s) => s.pal);
   const cf = useStore(ui, (s) => !!s.cf);
   const settings = useStore(ui, (s) => s.settingsOpen);
+  const mode = useStore(ui, (s) => s.settings?.mode ?? "cluster");
+  // The IDE stays mounted after it opens once, so its editors and terminal
+  // keep their state while the cluster views show.
+  const [ideLoaded, setIdeLoaded] = useState(false);
+  useEffect(() => {
+    if (mode === "ide") setIdeLoaded(true);
+  }, [mode]);
   if (!ready) return <div className="app" />;
   return (
     <div className="app">
-      <TopBar />
-      <div className="body">
-        <Rail />
-        <Tree />
-        <div className="main">
-          <div className="stage">
-            <ErrorBoundary label="view"><Stage /></ErrorBoundary>
+      <div className="mode-box" hidden={mode === "ide"}>
+        <TopBar />
+        <div className="body">
+          <Rail />
+          <Tree />
+          <div className="main">
+            <div className="stage">
+              <ErrorBoundary label="view"><Stage /></ErrorBoundary>
+            </div>
+            {dock && <ErrorBoundary label="dock"><Suspense fallback={null}><Dock /></Suspense></ErrorBoundary>}
           </div>
-          {dock && <ErrorBoundary label="dock"><Suspense fallback={null}><Dock /></Suspense></ErrorBoundary>}
+          {ai && <ErrorBoundary label="assistant"><Assistant /></ErrorBoundary>}
         </div>
-        {ai && <ErrorBoundary label="assistant"><Assistant /></ErrorBoundary>}
+        <StatusBar />
       </div>
-      <StatusBar />
-      {pal && <Palette />}
+      {ideLoaded && (
+        <div className="mode-box" hidden={mode !== "ide"}>
+          <ErrorBoundary label="IDE">
+            <Suspense fallback={<div className="center"><div className="flex mu"><span className="spinner" />Loading the IDE…</div></div>}>
+              <Ide visible={mode === "ide"} />
+            </Suspense>
+          </ErrorBoundary>
+        </div>
+      )}
+      {pal && mode !== "ide" && <Palette />}
       {cf && <Confirm />}
       {settings && <SettingsModal />}
       <Toast />

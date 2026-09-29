@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { call } from "../lib/bridge";
 import {
-  changeTextSize, connect, fail, kindLabel, nav, openAI, openDetail, openDock, saveSettings, say, toggleDensity, toggleTheme, ui,
+  changeTextSize, connect, fail, kindLabel, nav, openAI, openDetail, openDock, saveSettings, say, setMode, toggleDensity, toggleTheme, ui,
 } from "../lib/app";
 import { useStore } from "../lib/store";
 import { ensureLoaded, table, useTables } from "../lib/tables";
@@ -61,6 +61,7 @@ export function Palette() {
   const items = useMemo(() => {
     const out: PItem[] = [];
     const act = (label: string, sub: string, run: () => void) => out.push({ label, sub, grp: "Action", run });
+    act("Open the IDE", "Edit manifests in a Git repository", () => setMode("ide"));
     act("Explain cluster issues", "Assistant", () => openAI(null));
     for (const i of issues) act(`Explain: ${i.title}`, i.reason, () => openAI(i.id, true));
     act("Toggle light / dark theme", "Appearance", toggleTheme);

@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { setNs, toggleDensity, toggleTheme, ui } from "../lib/app";
+import { setMode, setNs, toggleDensity, toggleTheme, ui } from "../lib/app";
 import { shallowEqual, useStore } from "../lib/store";
 import { ensureLoaded, useTable } from "../lib/tables";
 
@@ -10,6 +10,16 @@ export function Logo() {
       <path d="M5.2 6.2C7.4 3 13.6 2.4 18 3.6c3.5 1 5.1 3.7 4.6 6.7-.6 3.2-3.5 6-8 6.8-4.7.7-9.3-.5-11.1-3.2-1.4-2.3-.2-5 1.7-7.7Z" fill="none" stroke="oklch(0.92 0.03 60)" strokeWidth="1.1" opacity=".55" />
       <text x="13.4" y="14.6" textAnchor="middle" fontFamily="Geist Mono Variable, monospace" fontWeight="600" fontSize="11.5" fill="oklch(0.97 0.02 70)">8</text>
     </svg>
+  );
+}
+
+/** ModeSwitch switches between the cluster views and the IDE. */
+export function ModeSwitch({ mode }: { mode: "cluster" | "ide" }) {
+  return (
+    <div className="seg">
+      <button className={mode === "cluster" ? "on" : ""} onClick={() => setMode("cluster")}>Cluster</button>
+      <button className={mode === "ide" ? "on" : ""} onClick={() => setMode("ide")}>IDE</button>
+    </div>
   );
 }
 
@@ -89,6 +99,8 @@ export function TopBar() {
       <button className={"btn" + (ai ? " accent" : "")} style={{ color: ai ? "var(--ac)" : "var(--mu)" }} onClick={() => ui.set({ ai: !ai })}>
         <span className="diamond" style={{ background: "currentColor", width: 6, height: 6 }} />Assistant<span className="kbd">A</span>
       </button>
+      <div className="vsep" />
+      <ModeSwitch mode="cluster" />
       <button className="btn" style={{ color: "var(--mu)" }} title="Toggle density" onClick={toggleDensity}>{density === "compact" ? "Compact" : "Comfortable"}</button>
       <button className="btn icon" style={{ color: "var(--mu)" }} title="Toggle theme" onClick={toggleTheme}>{theme === "dark" ? "☾" : "☀"}</button>
       <button className="btn icon" style={{ color: "var(--mu)" }} title="Settings" onClick={() => ui.set({ settingsOpen: true })}>⚙</button>

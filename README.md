@@ -24,6 +24,7 @@ st8ks watches your clusters live. It shows every resource, finds workloads that 
 | **See every resource live** | Lists for all built-in kinds and every CRD. Filter with `ns:prod status:crash app=web`, sort, save views, and act on many objects at once. [More](docs/resources.md) |
 | **Find what is broken** | st8ks detects crash loops, OOM kills, missing images, pods that cannot be scheduled, stuck rollouts and failed jobs. [More](docs/issues-and-assistant.md) |
 | **Fix it safely** | Review a proposed fix as a YAML diff, run a server dry run, then apply. Protected namespaces need the name typed first. [More](docs/editing.md) |
+| **Edit manifests in Git** | The IDE checks your manifests against the schema and the live pods of the cluster, shows the diff to the cluster, applies with server-side apply, and commits and pushes. [More](docs/ide.md) |
 | **Debug a container** | Stream logs, open a shell, attach a debug container to a pod that crashes, and forward ports. [More](docs/logs-shell-port-forward.md) |
 | **Understand access** | The RBAC explorer names the binding and the rule behind each permission. The API server confirms each answer. [More](docs/rbac.md) |
 | **Operate Helm releases** | Revision history, rollback, uninstall, and upgrade with edited values. [More](docs/helm.md) |
@@ -76,6 +77,7 @@ See [Development](docs/development.md#local-cluster) for what the cluster contai
 - [Clusters and kubeconfig files](docs/kubeconfig.md)
 - [Resources, filters and bulk actions](docs/resources.md)
 - [Details, YAML editing and safe changes](docs/editing.md)
+- [IDE for manifests in Git](docs/ide.md)
 - [Logs, shells and port-forwards](docs/logs-shell-port-forward.md)
 - [Issues and the assistant](docs/issues-and-assistant.md)
 - [RBAC explorer](docs/rbac.md)

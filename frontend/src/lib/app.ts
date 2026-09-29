@@ -69,6 +69,8 @@ export interface UI {
   applied: Record<string, number>;
   settingsOpen: boolean;
   helmSel: string | null;
+  /** ideWatch lists the kinds that the IDE shows, such as its live objects view. */
+  ideWatch: string[];
 }
 
 export const ui = createStore<UI>({
@@ -77,7 +79,7 @@ export const ui = createStore<UI>({
   view: "overview", kind: "Pods", nsSel: [], filter: "", savedView: "All", sort: null, checked: {},
   detail: null, dtab: "overview", ymode: "live", draft: null, detailNonce: 0,
   dock: [], dockActive: null, dockMin: false, pal: false, ai: false, aiIssue: null, aiAuto: 0,
-  cf: null, toast: null, applied: {}, settingsOpen: false, helmSel: null,
+  cf: null, toast: null, applied: {}, settingsOpen: false, helmSel: null, ideWatch: [],
 });
 
 let toastTimer = 0;
@@ -437,6 +439,13 @@ export function notePendingFixApplied(kind: string, ns: string, name: string) {
 export function toggleTheme() {
   const s = ui.get().settings;
   if (s) void saveSettings({ theme: s.theme === "dark" ? "light" : "dark" });
+}
+
+/** setMode switches between the cluster views and the IDE. */
+export function setMode(mode: "cluster" | "ide") {
+  if (ui.get().settings?.mode === mode) return;
+  ui.set({ pal: false });
+  void saveSettings({ mode });
 }
 
 export function toggleDensity() {

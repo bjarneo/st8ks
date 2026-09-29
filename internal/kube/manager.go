@@ -16,6 +16,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 )
 
 // ErrNotConnected is returned when no context is active.
@@ -235,6 +236,34 @@ func (m *Manager) restConfig(name string) (*rest.Config, *ctxEntry, string, erro
 		return nil, e, "", err
 	}
 	return cfg, e, e.raw.Contexts[e.orig].Namespace, nil
+}
+
+// WriteKubeconfig writes a kubeconfig file with one context, for kubectl
+// and other tools in the IDE terminal. The file has mode 0600.
+func (m *Manager) WriteKubeconfig(name, path string) error {
+	m.mu.Lock()
+	e := m.entries[name]
+	m.mu.Unlock()
+	if e == nil {
+		return fmt.Errorf("context %s not found", name)
+	}
+	ctx := e.raw.Contexts[e.orig]
+	if ctx == nil {
+		return fmt.Errorf("context %s not found", name)
+	}
+	cfg := clientcmdapi.NewConfig()
+	cfg.Contexts[e.orig] = ctx.DeepCopy()
+	if cl := e.raw.Clusters[ctx.Cluster]; cl != nil {
+		cfg.Clusters[ctx.Cluster] = cl.DeepCopy()
+	}
+	if ai := e.raw.AuthInfos[ctx.AuthInfo]; ai != nil {
+		cfg.AuthInfos[ctx.AuthInfo] = ai.DeepCopy()
+	}
+	cfg.CurrentContext = e.orig
+	if err := clientcmd.ResolveLocalPaths(cfg); err != nil {
+		return err
+	}
+	return clientcmd.WriteToFile(*cfg, path)
 }
 
 // Current returns the active cluster or nil.

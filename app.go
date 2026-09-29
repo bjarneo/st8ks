@@ -16,6 +16,7 @@ import (
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 
 	"st8ks/internal/assistant"
+	"st8ks/internal/ide"
 	"st8ks/internal/kube"
 	"st8ks/internal/settings"
 )
@@ -66,6 +67,10 @@ type App struct {
 
 	aiMu  sync.Mutex
 	aiCtx map[string]string
+
+	ide     *ide.Service
+	terms   *ide.Terminals
+	termCfg string // the kubeconfig of the IDE terminal
 }
 
 // NewApp creates the app.
@@ -76,6 +81,7 @@ func NewApp(flags Flags) *App {
 		return kube.LoadOptions{Explicit: a.flags.Kubeconfigs, Extra: s.Kubeconfigs, Hidden: s.HiddenKubeconfigs, Scan: s.ScanKubeDir}
 	})
 	a.ai = assistant.New(a.emit, func() string { return a.st.Get().AnthropicKey }, func() string { return a.st.Get().AssistantModel })
+	a.initIDE()
 	return a
 }
 
@@ -93,6 +99,7 @@ func (a *App) startup(ctx context.Context) {
 
 func (a *App) shutdown(context.Context) {
 	close(a.stop)
+	a.shutdownIDE()
 	a.m.Shutdown()
 }
 
@@ -173,8 +180,8 @@ func (a *App) Init() InitState {
 }
 
 // SaveSettings stores the settings that the frontend owns. The API key, the
-// kubeconfig sources and the last context have their own methods, so an old
-// copy in the frontend cannot undo them.
+// kubeconfig sources, the last context and the IDE folders have their own
+// methods, so an old copy in the frontend cannot undo them.
 func (a *App) SaveSettings(s settings.Settings) error {
 	return a.st.Update(func(cur *settings.Settings) {
 		s.AnthropicKey = cur.AnthropicKey
@@ -182,6 +189,8 @@ func (a *App) SaveSettings(s settings.Settings) error {
 		s.HiddenKubeconfigs = cur.HiddenKubeconfigs
 		s.ScanKubeDir = cur.ScanKubeDir
 		s.LastContext = cur.LastContext
+		s.IdeWorkspace = cur.IdeWorkspace
+		s.IdeRecent = cur.IdeRecent
 		*cur = s
 	})
 }
@@ -210,6 +219,10 @@ func (a *App) Connect(name string) (kube.ClusterState, error) {
 	st, err := a.m.Connect(name)
 	if err == nil && st.Status == kube.StatusConnected {
 		_ = a.st.Update(func(s *settings.Settings) { s.LastContext = name })
+		// A running IDE terminal follows the new context.
+		if _, statErr := os.Stat(a.termCfg); a.termCfg != "" && statErr == nil {
+			_, _ = a.writeTermConfig()
+		}
 	}
 	return st, err
 }

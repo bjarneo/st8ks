@@ -84,6 +84,9 @@ type Cluster struct {
 	restMapper meta.RESTMapper
 	met        metricsState
 	derived    derivedState
+
+	ideMu sync.Mutex
+	ide   ideState
 }
 
 func newCluster(name, orig string, raw clientcmdapi.Config, cfg *rest.Config, defaultNS string, emit Emitter) (*Cluster, error) {

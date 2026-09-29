@@ -11,6 +11,7 @@ st8ks is a Kubernetes desktop client for Linux, macOS and Windows. These guides 
 | [Clusters and kubeconfig files](kubeconfig.md) | Control which kubeconfig files st8ks reads, and use flags. |
 | [Resources, filters and bulk actions](resources.md) | Find objects fast and act on many objects at once. |
 | [Details, YAML editing and safe changes](editing.md) | Read an object, edit it, and apply a change with a dry run. |
+| [IDE](ide.md) | Edit a Git repository of manifests with checks against the live cluster, then dry-run, apply, commit and push. |
 | [Logs, shells and port-forwards](logs-shell-port-forward.md) | Debug a container. |
 | [Issues and the assistant](issues-and-assistant.md) | Understand the problems that st8ks detects and how it proposes fixes. |
 | [RBAC explorer](rbac.md) | See who can do what, and why. |

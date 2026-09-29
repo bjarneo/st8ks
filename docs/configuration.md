@@ -16,8 +16,9 @@ Click **⚙** in the top bar, or press `Ctrl K` and type `settings`.
 | Safety | Protected names, a regular expression | `(^\|[-_.])(prod\|production\|prd\|live)($\|[-_.])` |
 | Logs | Initial lines | 5000 |
 | Kubeconfig | Added files and folders, removed files, and the `~/.kube` scan | Scan on |
+| IDE | The inspector and the error lens. Change them with `Ctrl P` in the IDE. | On |
 
-st8ks also remembers the last context, the selected namespaces of each context, collapsed tree groups and saved views.
+st8ks also remembers the last context, the selected namespaces of each context, collapsed tree groups, saved views, the mode, Cluster or IDE, and the folders that the IDE opened.
 
 ### Settings file
 

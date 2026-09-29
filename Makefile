@@ -42,11 +42,11 @@ vet:
 
 ## fmt: format the Go code
 fmt:
-	gofmt -w main.go app.go internal
+	gofmt -w main.go app.go app_ide.go internal
 
 ## fmt-check: fail when Go code is not formatted
 fmt-check:
-	@test -z "$$(gofmt -l main.go app.go internal)" || { gofmt -l main.go app.go internal; exit 1; }
+	@test -z "$$(gofmt -l main.go app.go app_ide.go internal)" || { gofmt -l main.go app.go app_ide.go internal; exit 1; }
 
 ## staticcheck: run staticcheck
 staticcheck:

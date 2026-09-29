@@ -55,6 +55,22 @@ The palette finds resources by name, and runs these commands:
 
 The palette matches the start of words first, then any part of the name, then the letters in order. For example, `chk` finds `checkout`.
 
+## IDE
+
+In the IDE, these keys replace the keys of the cluster views. `Ctrl +`, `Ctrl -` and `Ctrl 0` still change the text size.
+
+| Key | Action |
+| --- | --- |
+| `Ctrl P` or `Ctrl K` | Go to a file, a problem or a command |
+| `Ctrl S` | Save the file |
+| `Ctrl .` | Apply the quick fix of the line |
+| `Ctrl Enter` | Server dry run of the file |
+| `Ctrl Shift Enter` | Apply the file |
+| `Ctrl J` | Show or hide the panel |
+| `Esc` | Close the palette or the apply dialog |
+
+In the IDE terminal, `Ctrl` keys go to the shell. See [IDE](ide.md).
+
 ## YAML editor
 
 The editor uses the standard CodeMirror keys. `Ctrl F` searches, `Ctrl Z` undoes, and `Tab` indents.

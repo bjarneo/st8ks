@@ -98,6 +98,7 @@ export interface Settings {
   overviewStyle: "metrics" | "nodemap"; collapsed: Record<string, boolean>; savedViews: SavedView[];
   kubeconfigs: string[]; scanKubeDir: boolean; lastContext: string; nsByContext: Record<string, string[]>; protectedPattern: string;
   assistantModel: string; logTail: number; textSize: number; hasKey: boolean;
+  mode: "cluster" | "ide"; ideWorkspace: string; ideRecent: string[]; ideHideInspector: boolean; ideLensOff: boolean;
 }
 
 export interface Source { path: string; kind: string; contexts: number; err?: string; removable: boolean; hidden?: boolean }
@@ -110,3 +111,35 @@ export interface TreeState { tree: TreeSection[]; kinds: KindInfo[] }
 export interface AiMsg { role: "user" | "assistant"; text: string }
 export interface AiChunk { id: string; delta?: string; done?: boolean; err?: string }
 export interface AskStart { id: string; cmds: string[] }
+
+// ---- IDE (internal/ide) ----
+
+export interface IdeChange { path: string; st: "M" | "A" | "D" | "R" | "U" }
+export interface IdeState {
+  root: string; name: string; git: boolean; branch: string; upstream: string; ahead: number; behind: number;
+  files: string[]; changes: IdeChange[]; truncated: boolean; err?: string;
+}
+export interface IdeInit { state: IdeState | null; diags: Record<string, Diag[]>; recent: string[]; err?: string }
+export type Sev = "error" | "warning" | "info";
+export interface Diag { line: number; col: number; end: number; sev: Sev; code: string; msg: string; live?: boolean; fix?: string }
+export interface FileData { text: string; head: string; hasHead: boolean }
+export interface IdeRef { apiVersion: string; kind: string; ns: string; name: string }
+export interface LiveStatus {
+  found: boolean; kind: string; status: string; tone: string; rows: KV[];
+  pods: { name: string; status: string; tone: string }[]; event: string; manager: string;
+}
+export interface Rendered { kind: string; name: string; ns: string; path: string }
+export interface FieldInfo { path: string; type: string; doc: string; value: string; live: string; hasLive: boolean; same: boolean }
+export interface Inspect {
+  kind: string; name: string; apiVersion: string; where: string; doc: number; docs: number; crumbs: string[]; kust: boolean;
+  renders: Rendered[] | null; renderErr: string; ref?: IdeRef; live?: LiveStatus; liveMsg: string; drift: number; field?: FieldInfo; schema: string;
+}
+export interface LiveDiff { text: string; found: number; objects: number; msg: string }
+export interface OutLine { t: string; c?: string }
+export interface IdeRun { ok: boolean; lines: OutLine[] }
+export interface ApplyResult {
+  resource: string; ns: string; verb: string; before: string; after: string; err?: string; conflict?: boolean; manager?: string; ref: IdeRef;
+}
+export interface Blocked { path: string; line: number; msg: string }
+export interface Plan { title: string; cmd: string; ctx: string; items: ApplyResult[]; notes: string[]; blocked: Blocked[]; ns: string[] }
+export interface IdeSource { path: string; line: number }

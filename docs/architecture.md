@@ -76,6 +76,19 @@ A loop runs once per second when a relevant table changed. It checks pods, nodes
 
 The assistant builds a text context from the issue, the object YAML, events and previous logs. It streams the answer from the Claude API with a read-only system prompt. The context is cached per cluster and issue, so follow-up questions do not read the cluster again.
 
+## IDE
+
+The IDE backend is the package `internal/ide`. It does not import the Kubernetes packages of st8ks. It reads the cluster through the `ide.Cluster` interface, which `internal/kube/ide.go` implements on the connected cluster.
+
+- **Checks** run in one background loop. The loop wakes 120 ms after an edit, and every 2 seconds while the IDE shows. It parses only the files whose text changed, and it runs the checks of a file again only when its text, the facts that other files give it, the schema or the build result change. The live checks read the watch cache, so they cost no API calls. The frontend gets only the files whose diagnostics changed.
+- **Schemas** come from the OpenAPI v3 endpoint of the cluster, one group version at a time, when a file first needs one.
+- **Kustomize** runs in process with the kustomize library. Unsaved editor buffers replace the files on disk during a build. A kustomization builds again only when one of its files changes.
+- **Git** runs as the `git` command, so your configuration, hooks and credentials apply.
+- **The terminal** runs your shell in a pseudo-terminal. Its output goes to the frontend in batches of 16 ms, like a pod shell.
+- **The editor** keeps one CodeMirror state for each tab in one editor view. A keystroke renders only the editor and the parts that show the dirty flag.
+
+The IDE code and CodeMirror load when the IDE opens first.
+
 ## Kubeconfig loading
 
 The primary kubeconfig loads as one merged config, like kubectl. Every extra file loads on its own, so contexts with the same name in different files stay apart. A watcher compares the modification time and size of every source and the file list of every watched folder every 3 seconds.
@@ -84,7 +97,7 @@ The primary kubeconfig loads as one merged config, like kubectl. Every extra fil
 
 | Path | Contents |
 | --- | --- |
-| `main.go`, `app.go` | Startup, flags, and the methods that the frontend calls |
+| `main.go`, `app.go`, `app_ide.go` | Startup, flags, and the methods that the frontend calls |
 | `internal/kube/cluster.go` | Connection, discovery, informers, the flush loop and the health loop |
 | `internal/kube/kinds.go`, `crd.go` | The kind registry and the row builders |
 | `internal/kube/table.go` | Tables, deltas and counts |
@@ -93,10 +106,13 @@ The primary kubeconfig loads as one merged config, like kubectl. Every extra fil
 | `internal/kube/issues.go`, `metrics.go`, `aicontext.go` | Issue detection, metrics and the assistant context |
 | `internal/kube/logs.go`, `exec.go`, `portforward.go` | Streams |
 | `internal/kube/rbac.go`, `helm.go`, `topology.go` | The RBAC explorer, Helm and the topology |
+| `internal/ide` | The IDE: workspace, Git, checks, schemas, kustomize, live diff, apply and the terminal |
+| `internal/kube/ide.go` | The cluster access of the IDE: live objects, pod facts, server-side apply and rollout status |
 | `internal/assistant` | The Claude API client |
 | `internal/settings`, `internal/shellenv` | Settings and the login shell environment |
 | `frontend/src/lib` | The bridge to Go, stores, tables, filters and streams |
 | `frontend/src/components` | The views |
+| `frontend/src/components/ide`, `frontend/src/lib/ide.ts` | The IDE views and their state |
 | `build/` | Icons, platform manifests and the Windows installer script |
 | `scripts/package.sh` | Release packaging |
 | `hack/dev-cluster` | The local test cluster |

@@ -6,6 +6,7 @@ import { call, errText, fromBase64, toBase64 } from "../lib/bridge";
 import { closeDock, fail, say, scale, ui, type DockTab } from "../lib/app";
 import { useStore } from "../lib/store";
 import { execRouter, logRouter } from "../lib/streams";
+import { termTheme } from "../lib/term";
 import type { ContainerModel, ObjectDoc } from "../lib/types";
 import { useScale } from "./VTable";
 
@@ -233,28 +234,6 @@ function LogsPane({ tab }: { tab: DockTab }) {
 }
 
 // ---- Terminal ----
-
-const probe = document.createElement("canvas").getContext("2d");
-function cssColor(v: string, fallback: string): string {
-  const raw = getComputedStyle(document.documentElement).getPropertyValue(v).trim() || fallback;
-  if (!probe) return fallback;
-  probe.clearRect(0, 0, 1, 1);
-  probe.fillStyle = fallback;
-  probe.fillStyle = raw;
-  probe.fillRect(0, 0, 1, 1);
-  const [r, g, b, a] = probe.getImageData(0, 0, 1, 1).data;
-  return a < 255 ? `rgba(${r},${g},${b},${(a / 255).toFixed(2)})` : `rgb(${r},${g},${b})`;
-}
-
-function termTheme() {
-  return {
-    background: cssColor("--bg", "#111214"),
-    foreground: cssColor("--tx", "#e6e7e9"),
-    cursor: cssColor("--ac", "#6ea8fe"),
-    cursorAccent: cssColor("--bg", "#111214"),
-    selectionBackground: cssColor("--acw", "rgba(110,168,254,0.3)"),
-  };
-}
 
 function TermPane({ tab, visible }: { tab: DockTab; visible: boolean }) {
   const { doc, err: docErr, reload } = useContainers(tab.ns, tab.pod);

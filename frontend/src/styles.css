@@ -4,6 +4,7 @@
   --ac: oklch(0.7 0.12 250); --acw: oklch(0.7 0.12 250 / .16); --onac: #0d1117;
   --ok: oklch(0.74 0.13 155); --wa: oklch(0.8 0.13 80); --er: oklch(0.68 0.17 25);
   --okw: oklch(0.74 0.13 155 / .14); --waw: oklch(0.8 0.13 80 / .14); --erw: oklch(0.68 0.17 25 / .14);
+  --syS: oklch(0.78 0.1 150); --syN: oklch(0.8 0.1 60);
   --sh: 0 16px 48px rgba(0, 0, 0, .45); --rh: 28px; --hh: 30px; --lh: 20px; --zf: 1; --fs: calc(12px * var(--zf)); --r: 5px;
   --sans: "Geist Variable", Geist, system-ui, sans-serif;
   --mono: "Geist Mono Variable", "Geist Mono", ui-monospace, monospace;
@@ -15,6 +16,7 @@
   --ac: oklch(0.54 0.15 250); --acw: oklch(0.54 0.15 250 / .1); --onac: #ffffff;
   --ok: oklch(0.55 0.13 155); --wa: oklch(0.62 0.13 70); --er: oklch(0.56 0.19 25);
   --okw: oklch(0.55 0.13 155 / .1); --waw: oklch(0.62 0.13 70 / .12); --erw: oklch(0.56 0.19 25 / .1);
+  --syS: oklch(0.5 0.12 150); --syN: oklch(0.55 0.13 55);
   --sh: 0 16px 48px rgba(20, 20, 30, .16);
   color-scheme: light;
 }
@@ -101,6 +103,8 @@ select.input { padding: 0 6px; }
 
 /* App frame */
 .app { height: 100vh; display: flex; flex-direction: column; background: var(--bg); }
+.mode-box { display: contents; }
+.mode-box[hidden] { display: none; }
 .top {
   height: calc(42px * var(--zf)); flex: none; display: flex; align-items: center; gap: 8px; padding: 0 10px 0 14px;
   background: var(--p1); border-bottom: 1px solid var(--ln); position: relative; z-index: 20; --wails-draggable: drag;
