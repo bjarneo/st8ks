@@ -3,7 +3,7 @@ VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 TAGS    ?= $(if $(filter Linux,$(shell uname -s)),webkit2_41,)
 LDFLAGS := -X main.version=$(VERSION)
 
-STATICCHECK_VERSION := v0.8.1
+STATICCHECK_VERSION := v0.8.2
 GOVULNCHECK_VERSION := v1.8.0
 
 DEV_KUBECONFIG ?= $(or $(ST8KS_DEV_KUBECONFIG),$(HOME)/.kube/st8ks-dev.yaml)
