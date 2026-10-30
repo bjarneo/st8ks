@@ -99,6 +99,7 @@ export interface Settings {
   kubeconfigs: string[]; scanKubeDir: boolean; lastContext: string; nsByContext: Record<string, string[]>; protectedPattern: string;
   assistantModel: string; logTail: number; textSize: number; hasKey: boolean;
   mode: "cluster" | "ide"; ideWorkspace: string; ideRecent: string[]; ideHideInspector: boolean; ideLensOff: boolean;
+  metricsSource: string;
 }
 
 export interface Source { path: string; kind: string; contexts: number; err?: string; removable: boolean; hidden?: boolean }

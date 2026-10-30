@@ -84,6 +84,7 @@ type Cluster struct {
 	restMapper meta.RESTMapper
 	met        metricsState
 	derived    derivedState
+	prom       promState
 
 	ideMu sync.Mutex
 	ide   ideState

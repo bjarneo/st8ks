@@ -1,16 +1,19 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { call, errText } from "../lib/bridge";
 import {
   ask, closeDetail, confirmCordon, confirmDelete, confirmRestart, fail, kindInfo, kindSingular, notePendingFixApplied,
   openAI, openDetail, openDock, protectedWord, say, ui, type YMode,
 } from "../lib/app";
 import { age, rel, toneVar } from "../lib/format";
+import { hasMetrics } from "../lib/metrics";
 import { useStore } from "../lib/store";
 import { useTable } from "../lib/tables";
 import type { ContainerModel, ObjectDoc } from "../lib/types";
 import { CodeView } from "./CodeView";
 import { DiffView, diffRows, diffStat } from "./DiffView";
 import { useNow } from "./VTable";
+
+const MetricsTab = lazy(() => import("./MetricsTab"));
 
 function Actions({ doc }: { doc: ObjectDoc | null }) {
   const d = useStore(ui, (s) => s.detail)!;
@@ -299,6 +302,7 @@ export function Detail() {
 
   const now = useNow();
   const tabs: [typeof dtab, string, string][] = d.create ? [["yaml", "YAML", ""]] : [["overview", "Overview", "o"], ["yaml", "YAML", "y"], ["events", "Events", "e"], ["related", "Related", "r"]];
+  if (!d.create && hasMetrics(d.kind)) tabs.push(["metrics", "Metrics", "m"]);
   const status = doc?.status;
   return (
     <div className={"detail " + layout}>
@@ -335,6 +339,11 @@ export function Detail() {
           <div className="dpad">{doc.pod ? <PodOverview doc={doc} /> : <GenericOverview doc={doc} />}</div>
         )}
         {dtab === "yaml" && (doc || d.create) && <YamlTab doc={doc} reload={() => void load()} />}
+        {dtab === "metrics" && doc && hasMetrics(d.kind) && (
+          <Suspense fallback={<div className="empty flex"><span className="spinner" />Loading metrics…</div>}>
+            <MetricsTab key={`${d.kind}/${d.ns}/${d.name}`} kind={d.kind} ns={d.ns} name={d.name} />
+          </Suspense>
+        )}
         {dtab === "events" && doc && (
           <div style={{ padding: "8px 0" }}>
             {!doc.events.length && <div className="empty">No events. The API server keeps events for one hour by default.</div>}

@@ -1,0 +1,81 @@
+/* The Metrics tab. It loads with the tab, so the first load of the app
+   stays small. */
+
+/* Series colors in a fixed order. Each theme has its own steps, validated
+   against its panel surface (--p1) for color vision deficiency. */
+:root {
+  --c1: #3987e5; --c2: #d95926; --c3: #199e70; --c4: #c98500; --c5: #d55181; --c6: #008300; --c7: #9085e9;
+}
+:root[data-theme="light"] {
+  --c1: #2a78d6; --c2: #eb6834; --c3: #1baf7a; --c4: #eda100; --c5: #e87ba4; --c6: #008300; --c7: #6250d6;
+}
+
+.mx { padding: 14px 18px 28px; display: flex; flex-direction: column; gap: 16px; }
+.mx-bar { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.mx-charts { gap: 22px; transition: opacity .15s; }
+.mx-charts.stale { opacity: .55; }
+.mx-panel { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.mx-head { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.mx-title { font-weight: 600; }
+.mx-stats { display: flex; gap: 12px; font: calc(11px * var(--zf)) var(--mono); font-variant-numeric: tabular-nums; color: var(--tx); white-space: nowrap; }
+
+.mx-chart { position: relative; outline: none; border-radius: 4px; }
+.mx-chart:focus-visible { box-shadow: 0 0 0 2px var(--acw); }
+.mx-chart svg { display: block; overflow: visible; touch-action: none; }
+.mx-grid { stroke: var(--ln); stroke-width: 1; shape-rendering: crispEdges; }
+.mx-ax { fill: var(--fa); font: calc(10px * var(--zf)) var(--mono); font-variant-numeric: tabular-nums; }
+.mx-line { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.mx-area { stroke: none; opacity: .1; }
+.mx-ref { stroke-width: 1; stroke-dasharray: 4 3; shape-rendering: crispEdges; }
+.mx-ref.request { stroke: var(--mu); }
+.mx-ref.limit { stroke: var(--er); }
+.mx-reft { fill: var(--mu); font: calc(10px * var(--zf)) var(--mono); paint-order: stroke; stroke: var(--p1); stroke-width: 3px; stroke-linejoin: round; }
+.mx-cross { stroke: var(--mu); stroke-width: 1; shape-rendering: crispEdges; }
+.mx-dot { stroke: var(--p1); stroke-width: 2; }
+.mx-above { margin-top: 2px; }
+
+.mx-line.c1 { stroke: var(--c1); }
+.mx-area.c1, .mx-dot.c1 { fill: var(--c1); }
+.mx-key.c1 { background: var(--c1); }
+.mx-line.c2 { stroke: var(--c2); }
+.mx-area.c2, .mx-dot.c2 { fill: var(--c2); }
+.mx-key.c2 { background: var(--c2); }
+.mx-line.c3 { stroke: var(--c3); }
+.mx-area.c3, .mx-dot.c3 { fill: var(--c3); }
+.mx-key.c3 { background: var(--c3); }
+.mx-line.c4 { stroke: var(--c4); }
+.mx-area.c4, .mx-dot.c4 { fill: var(--c4); }
+.mx-key.c4 { background: var(--c4); }
+.mx-line.c5 { stroke: var(--c5); }
+.mx-area.c5, .mx-dot.c5 { fill: var(--c5); }
+.mx-key.c5 { background: var(--c5); }
+.mx-line.c6 { stroke: var(--c6); }
+.mx-area.c6, .mx-dot.c6 { fill: var(--c6); }
+.mx-key.c6 { background: var(--c6); }
+.mx-line.c7 { stroke: var(--c7); }
+.mx-area.c7, .mx-dot.c7 { fill: var(--c7); }
+.mx-key.c7 { background: var(--c7); }
+
+/* A short line key, like the mark it names. */
+.mx-key { display: inline-block; width: 12px; height: 2px; border-radius: 1px; vertical-align: middle; flex: none; }
+
+.mx-tip {
+  position: absolute; top: 4px; z-index: 2; pointer-events: none; min-width: 140px; max-width: 280px;
+  background: var(--p2); border: 1px solid var(--ln); border-radius: 6px; box-shadow: var(--sh);
+  padding: 6px 9px; display: flex; flex-direction: column; gap: 3px;
+}
+.mx-tiprow { display: grid; grid-template-columns: 12px auto minmax(0, 1fr); align-items: center; gap: 7px; }
+.mx-tipv { font: 500 calc(11.5px * var(--zf)) var(--mono); color: var(--tx); font-variant-numeric: tabular-nums; }
+
+.mx-legend { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: calc(11.5px * var(--zf)); }
+.mx-legend th { color: var(--fa); font-weight: 500; text-align: right; padding: 3px 6px; border-bottom: 1px solid var(--ln); }
+.mx-legend th:nth-child(1) { width: 22px; }
+.mx-legend th:nth-child(2) { text-align: left; width: auto; }
+.mx-legend th:nth-child(n+3) { width: 64px; }
+.mx-legend td { padding: 3px 6px; text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; color: var(--tx); }
+.mx-legend td:nth-child(2) { text-align: left; font-family: var(--sans); }
+.mx-legend tbody tr:hover { background: var(--p2); }
+
+.mx-state { display: flex; flex-direction: column; gap: 10px; max-width: 560px; line-height: 1.5; }
+.mx-state ul { margin: 0; padding-left: 18px; color: var(--mu); display: flex; flex-direction: column; gap: 3px; }
+.mx-cmd { display: block; font: calc(11.5px * var(--zf)) var(--mono); background: var(--p2); padding: 6px 10px; border-radius: var(--r); color: var(--tx); user-select: text; }

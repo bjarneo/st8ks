@@ -44,6 +44,9 @@ func (c *Cluster) IssueContext(id string) (string, []string, error) {
 	for _, e := range i.Evidence {
 		b.WriteString("- " + e + "\n")
 	}
+	if e := c.oomEvidence(i); e != "" {
+		b.WriteString("- " + e + "\n")
+	}
 	b.WriteString("Rule engine suggestion: " + i.Fix + "\n")
 
 	doc, err := c.GetObject(Ref{Kind: i.Kind, NS: i.NS, Name: i.Obj})

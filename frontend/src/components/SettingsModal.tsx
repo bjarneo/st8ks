@@ -4,6 +4,7 @@ import { fail, saveSettings, say, TEXT_SIZES, ui } from "../lib/app";
 import { useStore } from "../lib/store";
 import type { Settings } from "../lib/types";
 import { ClaudeSetup } from "./ClaudeSetup";
+import { MetricsSettings } from "./MetricsSettings";
 
 const MODELS = ["claude-opus-5", "claude-sonnet-5", "claude-haiku-4-5", "claude-fable-5-1"];
 
@@ -101,6 +102,9 @@ export function SettingsModal() {
           <input className="input mono" style={{ width: 120 }} type="number" min={100} value={tail} onChange={(e) => setTail(e.target.value)}
             onBlur={() => save({ logTail: Math.max(100, parseInt(tail, 10) || 5000) })} />
         ), "Lines to load before following a log.")}
+
+        <div className="sec-label" id="settings-metrics">Metrics</div>
+        <MetricsSettings row={row} />
 
         <div className="sec-label">Kubeconfig</div>
         {row("Files", (

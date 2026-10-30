@@ -10,7 +10,7 @@ import type {
 } from "./types";
 
 export type View = "overview" | "list" | "events" | "rbac" | "helm" | "clusters" | "topology";
-export type DTab = "overview" | "yaml" | "events" | "related";
+export type DTab = "overview" | "yaml" | "events" | "related" | "metrics";
 export type YMode = "live" | "edit" | "diff";
 
 export interface DetailRef { kind: string; ns: string; name: string; create?: boolean }

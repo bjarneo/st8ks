@@ -41,6 +41,8 @@ type Manager struct {
 	logs     map[string]context.CancelFunc
 	execs    map[string]*ExecSession
 	forwards map[string]*forwardHandle
+
+	promSetting func() string
 }
 
 // NewManager creates a manager. opts returns the kubeconfig files to read.
@@ -330,6 +332,7 @@ func (m *Manager) Connect(name string) (ClusterState, error) {
 		return ClusterState{Context: name, Status: StatusUnknown}, errors.New("another context was selected")
 	}
 	m.cur = c
+	c.prom.setting = m.promSetting
 	m.mu.Unlock()
 	m.emitContexts()
 	_ = c.Start()

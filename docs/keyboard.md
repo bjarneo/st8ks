@@ -33,6 +33,7 @@ In the filter box, `Enter` or `↓` moves to the list, and `Esc` clears the filt
 | `y` | YAML tab |
 | `e` | Events tab |
 | `r` | Related tab |
+| `m` | Metrics tab of a pod, workload or node |
 | `l` | Logs of the pod |
 | `s` | Shell in the pod |
 

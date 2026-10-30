@@ -8,7 +8,7 @@ st8ks checks the cluster for common problems all the time. Each problem is an is
 
 | Issue | Severity | Evidence | Fix action |
 | --- | --- | --- | --- |
-| A container is in `CrashLoopBackOff` after an OOM kill | Error | Last state, exit code, memory limit, current use, warning events, Deployment revision | **Review fix as diff**: raises the memory limit on the owning workload |
+| A container is in `CrashLoopBackOff` after an OOM kill | Error | Last state, exit code, memory limit, current use, warning events, Deployment revision. The assistant also gets the peak memory of the last hour from [Prometheus](metrics.md#assistant-evidence). | **Review fix as diff**: raises the memory limit on the owning workload |
 | A container is in `CrashLoopBackOff` for another reason | Error | Last state, exit code and what it means, warning events | **Open previous logs** |
 | An image cannot be pulled | Error | Pull errors from events. A missing tag or rejected credentials are named. | **Roll back Helm release** when a Helm release manages the workload |
 | A container cannot be created | Error | The error, for example a missing Secret | None |

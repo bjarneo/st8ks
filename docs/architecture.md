@@ -110,6 +110,7 @@ The primary kubeconfig loads as one merged config, like kubectl. Every extra fil
 | `internal/kube/manager.go`, `kubeconfig.go` | Contexts, kubeconfig sources, sessions and port-forwards |
 | `internal/kube/object.go` | Object detail, relations and all changes |
 | `internal/kube/issues.go`, `metrics.go`, `aicontext.go` | Issue detection, metrics and the assistant context |
+| `internal/kube/prometheus.go`, `app_metrics.go` | Prometheus discovery and the queries of the Metrics tab |
 | `internal/kube/logs.go`, `exec.go`, `portforward.go` | Streams |
 | `internal/kube/rbac.go`, `helm.go`, `topology.go` | The RBAC explorer, Helm and the topology |
 | `internal/ide` | The IDE: workspace, Git, checks, schemas, kustomize, live diff, apply and the terminal |

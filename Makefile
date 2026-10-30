@@ -9,7 +9,7 @@ GOVULNCHECK_VERSION := v1.8.0
 DEV_KUBECONFIG ?= $(or $(ST8KS_DEV_KUBECONFIG),$(HOME)/.kube/st8ks-dev.yaml)
 
 .PHONY: dev build frontend typecheck test race vet fmt fmt-check staticcheck security ci \
-	integration cluster-up cluster-down cluster-reset cluster-load clean help
+	integration cluster-up cluster-down cluster-reset cluster-load cluster-prometheus clean help
 
 ## dev: run the app with live reload
 dev:
@@ -40,13 +40,15 @@ vet:
 	go vet -tags "$(TAGS)" ./...
 	go vet -tags "integration $(TAGS)" ./...
 
+GO_SRC := $(wildcard *.go) internal
+
 ## fmt: format the Go code
 fmt:
-	gofmt -w main.go app.go app_ide.go app_mcp.go internal
+	gofmt -w $(GO_SRC)
 
 ## fmt-check: fail when Go code is not formatted
 fmt-check:
-	@test -z "$$(gofmt -l main.go app.go app_ide.go app_mcp.go internal)" || { gofmt -l main.go app.go app_ide.go app_mcp.go internal; exit 1; }
+	@test -z "$$(gofmt -l $(GO_SRC))" || { gofmt -l $(GO_SRC); exit 1; }
 
 ## staticcheck: run staticcheck
 staticcheck:
@@ -75,6 +77,10 @@ cluster-reset:
 ## cluster-load: add 6000 ConfigMaps to the local cluster for a load test
 cluster-load:
 	hack/dev-cluster/load.sh
+
+## cluster-prometheus: install Prometheus in the local cluster for the Metrics tab
+cluster-prometheus:
+	hack/dev-cluster/prometheus.sh
 
 ## integration: run the integration test against the local kind cluster
 integration:

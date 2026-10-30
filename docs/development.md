@@ -55,6 +55,7 @@ This is useful for browser developer tools and for automated screenshots with Pu
 | `make cluster-down` | Deletes the cluster and its kubeconfig. |
 | `make cluster-reset` | Deletes the cluster and creates it again. |
 | `make cluster-load` | Adds 6,000 ConfigMaps for a load test. |
+| `make cluster-prometheus` | Installs Prometheus in the namespace `monitoring`. See [Prometheus](#prometheus). |
 | `hack/dev-cluster/load.sh 20000` | Adds any number of ConfigMaps. |
 | `hack/dev-cluster/load.sh --churn` | Relabels all of them, to test live updates. |
 
@@ -74,6 +75,24 @@ The cluster contains:
 | jobs | Job `backfill-orders` | A failed job |
 | all | RoleBindings for `payments-devs`, `oncall`, `alice@acme.test` | Data for the RBAC explorer |
 | kube-system | metrics-server | CPU and memory data |
+
+### Prometheus
+
+The cluster has no Prometheus by default. To test the [Metrics tab](metrics.md), install one:
+
+```sh
+make cluster-prometheus
+```
+
+The script `hack/dev-cluster/prometheus.sh` installs the server of the prometheus-community `prometheus` chart in the namespace `monitoring`, with a pinned chart version. It turns off Alertmanager, kube-state-metrics, node-exporter and Pushgateway, and it scrapes every 15 seconds. The server scrapes cAdvisor on every kubelet, which gives the CPU and memory series of all containers. st8ks finds the Service `monitoring/prometheus-server` by itself. The first points show after about 30 seconds.
+
+To remove it, run `hack/dev-cluster/prometheus.sh --delete`.
+
+The integration test `TestIntegrationPrometheus` covers the discovery, the queries, the setting, a forbidden proxy and the OOM evidence line. It skips when the cluster has no Prometheus:
+
+```sh
+ST8KS_IT_KUBECONFIG=~/.kube/st8ks-dev.yaml go test -count=1 -tags "integration webkit2_41" -run TestIntegrationPrometheus -v ./internal/kube/
+```
 
 ## Checks
 

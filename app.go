@@ -82,6 +82,7 @@ func NewApp(flags Flags) *App {
 		s := a.st.Get()
 		return kube.LoadOptions{Explicit: a.flags.Kubeconfigs, Extra: s.Kubeconfigs, Hidden: s.HiddenKubeconfigs, Scan: s.ScanKubeDir}
 	})
+	a.m.SetMetricsSource(func() string { return a.st.Get().MetricsSource })
 	a.ai = assistant.New(a.emit, func() string { return a.st.Get().AnthropicKey }, func() string { return a.st.Get().AssistantModel })
 	a.initIDE()
 	a.initClaude()

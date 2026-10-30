@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useState } from "react";
-import { changeTextSize, closeDetail, fail, init, openDock, ui } from "../lib/app";
+import { changeTextSize, closeDetail, fail, init, openDock, ui, type DTab } from "../lib/app";
+import { hasMetrics } from "../lib/metrics";
 import { useStore } from "../lib/store";
 import { setWatched } from "../lib/tables";
 import { TopBar } from "./TopBar";
@@ -90,7 +91,8 @@ function useKeyboard() {
       if (d && !d.create) {
         if (d.kind === "Pods" && e.key === "l") return openDock("logs", d.ns, d.name);
         if (d.kind === "Pods" && e.key === "s") return openDock("term", d.ns, d.name);
-        const tabs: Record<string, "overview" | "yaml" | "events" | "related"> = { o: "overview", y: "yaml", e: "events", r: "related" };
+        const tabs: Record<string, DTab> = { o: "overview", y: "yaml", e: "events", r: "related" };
+        if (hasMetrics(d.kind)) tabs.m = "metrics";
         if (tabs[e.key]) return ui.set({ dtab: tabs[e.key] });
       }
       if (e.key === "a") ui.set({ ai: !s.ai });

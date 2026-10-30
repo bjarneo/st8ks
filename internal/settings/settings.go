@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 	"sync"
 )
 
@@ -44,6 +45,9 @@ type Settings struct {
 	IdeRecent        []string `json:"ideRecent"`
 	IdeHideInspector bool     `json:"ideHideInspector"`
 	IdeLensOff       bool     `json:"ideLensOff"`
+	// MetricsSource is the Prometheus for the Metrics tab: empty for auto
+	// discovery, namespace/name:port with an optional path, or a URL.
+	MetricsSource string `json:"metricsSource"`
 }
 
 // Defaults returns the settings for a first start.
@@ -136,6 +140,7 @@ func normalize(s Settings) Settings {
 	if s.IdeRecent == nil {
 		s.IdeRecent = []string{}
 	}
+	s.MetricsSource = strings.TrimSpace(s.MetricsSource)
 	switch {
 	case s.TextSize == 0:
 		s.TextSize = d.TextSize

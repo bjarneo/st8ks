@@ -16,6 +16,7 @@ Click **⚙** in the top bar, or press `Ctrl K` and type `settings`.
 | | Claude Code: the path of `claude`, and the command that adds st8ks to Claude Code | — |
 | Safety | Protected names, a regular expression | `(^\|[-_.])(prod\|production\|prd\|live)($\|[-_.])` |
 | Logs | Initial lines | 5000 |
+| Metrics | Prometheus: Auto, a Service as `namespace/name:port` with an optional path, or a URL. See [Metrics history](metrics.md#set-the-source). | Auto |
 | Kubeconfig | Added files and folders, removed files, and the `~/.kube` scan | Scan on |
 | IDE | The inspector and the error lens. Change them with `Ctrl P` in the IDE. | On |
 
