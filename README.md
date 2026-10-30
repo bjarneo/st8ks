@@ -4,6 +4,7 @@
   <p><b>A fast Kubernetes desktop client that finds what is broken and helps you fix it.</b></p>
   <p>Linux · macOS · Windows</p>
   <p>
+    <a href="https://bjarneo.github.io/st8ks/">Website</a> ·
     <a href="../../releases/latest">Download</a> ·
     <a href="docs/README.md">Documentation</a> ·
     <a href="docs/development.md">Develop</a> ·
@@ -104,3 +105,7 @@ make build    # the binary goes to build/bin
 ```
 
 On Linux, install `libgtk-3-dev` and `libwebkit2gtk-4.1-dev` first. [Development](docs/development.md) lists the requirements for each platform.
+
+## License
+
+st8ks uses the [MIT license](LICENSE).

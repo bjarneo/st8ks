@@ -1,0 +1,445 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>st8ks: a Kubernetes desktop client that fixes what is broken</title>
+<meta name="description" content="st8ks is a free, open source Kubernetes desktop client for Linux, macOS and Windows. It finds workloads that fail and proposes a fix as a YAML diff that the API server dry-runs before you apply it.">
+<meta name="theme-color" content="#111214">
+<meta property="og:type" content="website">
+<meta property="og:title" content="st8ks: find what is broken, fix it as a diff">
+<meta property="og:description" content="A free, open source Kubernetes desktop client for Linux, macOS and Windows.">
+<meta property="og:url" content="https://bjarneo.github.io/st8ks/">
+<meta property="og:image" content="https://bjarneo.github.io/st8ks/images/og.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="images/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="images/apple-touch-icon.png">
+<link rel="preload" href="fonts/geist.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/geist-mono.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="style.css">
+<script src="main.js" defer></script>
+</head>
+<body>
+
+<svg width="0" height="0" class="sprite" aria-hidden="true">
+  <symbol id="i-github" viewBox="0 0 16 16"><path fill="currentColor" d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"/></symbol>
+  <symbol id="i-down" viewBox="0 0 16 16"><path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" d="M8 2.5v8m-3.5-3.5L8 10.5 11.5 7M3 13.5h10"/></symbol>
+  <symbol id="i-check" viewBox="0 0 16 16"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="m3 8.5 3 3 7-7"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 16 16"><g fill="none" stroke="currentColor" stroke-width="1.4"><rect x="5.5" y="5.5" width="8" height="8" rx="1.5"/><path d="M10.5 3.5v-.5A1.5 1.5 0 0 0 9 1.5H3A1.5 1.5 0 0 0 1.5 3v6A1.5 1.5 0 0 0 3 10.5h.5"/></g></symbol>
+  <symbol id="i-arrow" viewBox="0 0 16 16"><path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" d="M3 8h10m-4-4 4 4-4 4"/></symbol>
+</svg>
+
+<header class="nav">
+  <div class="wrap nav-in">
+    <a class="brand" href="./" aria-label="st8ks home">
+      <img src="images/icon.svg" width="28" height="28" alt="">
+      <span>st8ks</span>
+    </a>
+    <nav class="nav-links" aria-label="Main">
+      <a class="hide-sm" href="#new">What is new</a>
+      <a href="https://github.com/bjarneo/st8ks/blob/main/docs/README.md">Docs</a>
+      <a href="https://github.com/bjarneo/st8ks"><svg class="ic"><use href="#i-github"/></svg><span class="hide-sm">GitHub</span></a>
+      <a class="btn sm" href="#install" data-dl>Download</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+<section class="hero wrap" aria-labelledby="hero-h">
+  <div class="hero-text">
+    <h1 id="hero-h">Find what is broken.<br><span>Fix it as a diff.</span></h1>
+    <div class="hero-side">
+      <p class="lede">st8ks is a Kubernetes desktop client for Linux, macOS and Windows. It finds the workloads that fail and proposes a fix as a YAML diff. The API server dry-runs the fix before you apply it.</p>
+      <p class="facts"><span>Free and open source, MIT</span><span>No account</span><span data-version>Latest release</span></p>
+    </div>
+  </div>
+
+  <div class="win demo" id="demo">
+   <div class="win-main">
+    <div class="win-head">
+      <p class="win-kind"><span class="tag">Deployment</span><span class="mu">prod</span></p>
+      <p class="win-name"><b>checkout</b><span class="state"><i class="dot er"></i>Unavailable</span></p>
+      <p class="win-tabs" aria-hidden="true"><span>Overview <kbd>O</kbd></span><span class="on">YAML <kbd>Y</kbd></span><span>Events <kbd>1</kbd></span><span>Related <kbd>R</kbd></span></p>
+    </div>
+    <div class="win-bar">
+      <div class="seg" role="tablist" aria-label="YAML view">
+        <button type="button" role="tab" aria-selected="false" data-view="live">Live</button>
+        <button type="button" role="tab" aria-selected="false" data-view="edit">Edit</button>
+        <button type="button" role="tab" aria-selected="true" data-view="diff">Diff</button>
+      </div>
+      <span class="stat mono"><span class="ok">+2</span> <span class="er">-2</span></span>
+      <span class="grow"></span>
+      <button type="button" class="btn" id="dryrun"><span class="spin" aria-hidden="true"></span><span class="lbl">Server dry-run</span></button>
+      <a class="btn primary" href="#install" data-dl><svg class="ic"><use href="#i-down"/></svg><span data-dl-label>Download</span></a>
+    </div>
+    <div class="dry" id="dry" role="status">
+      <p class="okbox"><svg class="ic"><use href="#i-check"/></svg><span>deployment.apps/checkout configured (server dry run) · schema valid · admission webhooks passed</span></p>
+    </div>
+    <div class="code" id="code" data-mode="diff" aria-label="The proposed change to the checkout Deployment">
+      <div class="r fold"><span class="o"></span><span class="n"></span><span class="s"></span><span class="t">⋯ 47 unchanged lines</span></div>
+      <div class="r"><span class="o">48</span><span class="n">48</span><span class="s"></span><span class="t">    protocol: TCP</span></div>
+      <div class="r"><span class="o">49</span><span class="n">49</span><span class="s"></span><span class="t">  resources:</span></div>
+      <div class="r"><span class="o">50</span><span class="n">50</span><span class="s"></span><span class="t">    limits:</span></div>
+      <div class="r"><span class="o">51</span><span class="n">51</span><span class="s"></span><span class="t">      cpu: 200m</span></div>
+      <div class="r del"><span class="o">52</span><span class="n"></span><span class="s">-</span><span class="t">      memory: 64Mi</span></div>
+      <div class="r add"><span class="o"></span><span class="n">52</span><span class="s">+</span><span class="t">      memory: 320Mi<i class="caret" aria-hidden="true"></i></span></div>
+      <div class="r"><span class="o">53</span><span class="n">53</span><span class="s"></span><span class="t">    requests:</span></div>
+      <div class="r"><span class="o">54</span><span class="n">54</span><span class="s"></span><span class="t">      cpu: 10m</span></div>
+      <div class="r del"><span class="o">55</span><span class="n"></span><span class="s">-</span><span class="t">      memory: 32Mi</span></div>
+      <div class="r add"><span class="o"></span><span class="n">55</span><span class="s">+</span><span class="t">      memory: 160Mi</span></div>
+      <div class="r wide"><span class="o">56</span><span class="n">56</span><span class="s"></span><span class="t">  terminationMessagePath: /dev/termination-log</span></div>
+      <div class="r wide"><span class="o">57</span><span class="n">57</span><span class="s"></span><span class="t">  terminationMessagePolicy: File</span></div>
+      <div class="r fold"><span class="o"></span><span class="n"></span><span class="s"></span><span class="t"><span class="wide-t">⋯ 38 unchanged lines</span><span class="narrow-t">⋯ 40 unchanged lines</span></span></div>
+    </div>
+   </div>
+    <aside class="assist" aria-label="The assistant explains the issue">
+      <p class="assist-head"><i class="dot ac"></i><b>Assistant</b><span class="chip">read-only</span></p>
+      <p class="assist-title">checkout keeps restarting</p>
+      <p class="assist-ref mono">prod/checkout-596d97bc-98bz6</p>
+      <p>The container checkout is killed because it uses more memory than its limit of 64Mi.</p>
+      <p class="assist-label">Evidence</p>
+      <ul class="evidence">
+        <li>Last state: Terminated, reason OOMKilled, exit code 137</li>
+        <li>Memory limit 64Mi</li>
+        <li>5 restarts in 4m25s</li>
+      </ul>
+      <div class="fixbox">
+        <p class="assist-label ac">Suggested fix</p>
+        <p>Raise the memory limit of Deployment checkout from 64Mi to 320Mi. A ReplicaSet owns the pod, so the change goes on the Deployment.</p>
+      </div>
+    </aside>
+  </div>
+  <p class="hero-foot"><a href="#new">New in v0.3.0: metrics history, GitOps, Helm install and Claude Code</a><a href="#install">Other platforms and checksums</a></p>
+</section>
+
+<section class="film wrap" id="video" aria-labelledby="film-h">
+  <div class="film-head">
+    <h2 id="film-h">See st8ks in 90 seconds</h2>
+    <p>From an OOM kill to a passed server dry run. Then metrics, GitOps, Helm, logs, RBAC, topology, the IDE and Claude Code. Recorded in st8ks on the local test cluster of the repository.</p>
+  </div>
+  <div class="film-grid">
+    <figure class="film-frame">
+      <video id="film" controls preload="none" playsinline poster="video/st8ks-poster.jpg" width="1920" height="1080" aria-label="A 90 second video of st8ks with music and captions">
+        <source src="video/st8ks.mp4" type="video/mp4">
+        <a href="video/st8ks.mp4">Download the video</a>
+      </video>
+    </figure>
+    <ol class="chapters" aria-label="Scenes">
+      <li><button type="button" data-t="2.7"><span class="mono">0:03</span><span>Find what is broken</span></button></li>
+      <li><button type="button" data-t="5.6"><span class="mono">0:06</span><span>Read the evidence</span></button></li>
+      <li><button type="button" data-t="10.9"><span class="mono">0:11</span><span>Fix it as a diff</span></button></li>
+      <li><button type="button" data-t="22"><span class="mono">0:22</span><span>Confirm a restart</span></button></li>
+      <li><button type="button" data-t="28.3"><span class="mono">0:28</span><span>Metrics history</span></button></li>
+      <li><button type="button" data-t="35.8"><span class="mono">0:36</span><span>Argo CD and Flux</span></button></li>
+      <li><button type="button" data-t="45.3"><span class="mono">0:45</span><span>Install a Helm chart</span></button></li>
+      <li><button type="button" data-t="55"><span class="mono">0:55</span><span>Logs and a shell</span></button></li>
+      <li><button type="button" data-t="62.5"><span class="mono">1:03</span><span>RBAC explorer</span></button></li>
+      <li><button type="button" data-t="67.5"><span class="mono">1:08</span><span>Topology</span></button></li>
+      <li><button type="button" data-t="71.2"><span class="mono">1:11</span><span>Manifests in Git</span></button></li>
+      <li><button type="button" data-t="79.6"><span class="mono">1:20</span><span>Claude Code and MCP</span></button></li>
+    </ol>
+  </div>
+</section>
+
+<section class="file wrap" aria-labelledby="file-h">
+  <h2 id="file-h">The same on-call work, with kubectl and with st8ks</h2>
+  <pre class="filehead mono" aria-label="Legend"><span>diff --git a/on-call b/on-call</span>
+<span class="er">--- kubectl</span>    <span class="fa">what you type today</span>
+<span class="ok">+++ st8ks</span>      <span class="fa">what st8ks shows you</span></pre>
+</section>
+
+<section class="hunk wrap" aria-labelledby="h-find">
+  <div class="hunk-text">
+    <h2 id="h-find"><span class="range mono">@@ -1,2 +1,1 @@</span> <span>See what is broken</span></h2>
+    <div class="lines">
+      <div class="r del"><span class="o">1</span><span class="n"></span><span class="s">-</span><code>kubectl get pods -A | grep -v Running</code></div>
+      <div class="r del"><span class="o">2</span><span class="n"></span><span class="s">-</span><code>kubectl get events -A --sort-by=.lastTimestamp</code></div>
+      <div class="r add"><span class="o"></span><span class="n">1</span><span class="s">+</span><p>st8ks detects crash loops, OOM kills, missing images, pods that cannot be scheduled, stuck rollouts and failed jobs. It groups the pods of one workload into one issue.</p></div>
+    </div>
+    <a class="more" href="https://github.com/bjarneo/st8ks/blob/main/docs/issues-and-assistant.md">Issues and the assistant<svg class="ic"><use href="#i-arrow"/></svg></a>
+  </div>
+  <figure class="shot">
+    <img src="images/find.webp" width="598" height="304" alt="The Needs attention list: checkout keeps restarting, two images cannot be pulled, a job failed and a pod cannot be scheduled" loading="lazy" decoding="async">
+  </figure>
+</section>
+
+<section class="hunk wrap" aria-labelledby="h-evidence">
+  <div class="hunk-text">
+    <h2 id="h-evidence"><span class="range mono">@@ -3,2 +2,1 @@</span> <span>Read the evidence in one place</span></h2>
+    <div class="lines">
+      <div class="r del"><span class="o">3</span><span class="n"></span><span class="s">-</span><code>kubectl describe pod checkout-596d97bc-98bz6 -n prod</code></div>
+      <div class="r del"><span class="o">4</span><span class="n"></span><span class="s">-</span><code>kubectl logs checkout-596d97bc-98bz6 -n prod --previous</code></div>
+      <div class="r add"><span class="o"></span><span class="n">2</span><span class="s">+</span><p>The pod shows the reason, the last state, the limits, the conditions and the events. The read-only assistant explains the cause with the Claude API and your own key.</p></div>
+    </div>
+    <a class="more" href="https://github.com/bjarneo/st8ks/blob/main/docs/editing.md">Details and YAML<svg class="ic"><use href="#i-arrow"/></svg></a>
+  </div>
+  <figure class="shot">
+    <img src="images/evidence.webp" width="678" height="520" alt="The pod detail of checkout-596d97bc-98bz6: CrashLoopBackOff and OOMKilled, with a button to explain the issue and suggest a fix" loading="lazy" decoding="async">
+  </figure>
+</section>
+
+<section class="hunk wrap" aria-labelledby="h-fix">
+  <div class="hunk-text">
+    <h2 id="h-fix"><span class="range mono">@@ -5,2 +3,1 @@</span> <span>Check every change before it reaches the cluster</span></h2>
+    <div class="lines">
+      <div class="r del"><span class="o">5</span><span class="n"></span><span class="s">-</span><code>kubectl edit deployment checkout -n prod</code></div>
+      <div class="r del"><span class="o">6</span><span class="n"></span><span class="s">-</span><code>kubectl rollout restart deployment/checkout -n prod</code></div>
+      <div class="r add"><span class="o"></span><span class="n">3</span><span class="s">+</span><p>An edit shows as a YAML diff, and the server dry run checks it. A restart, scale, delete or rollback opens a confirmation with Dry run first. In a protected context or namespace, you type the object name to confirm.</p></div>
+    </div>
+    <a class="more" href="https://github.com/bjarneo/st8ks/blob/main/docs/editing.md">Safe changes<svg class="ic"><use href="#i-arrow"/></svg></a>
+  </div>
+  <figure class="stage" role="img" aria-label="The confirmation dialog for a restart of deployment/checkout in the protected namespace prod. Dry run first is on, checkout is typed, and the dry run passed.">
+    <div class="dlg" aria-hidden="true">
+      <p class="dlg-title">Restart deployment/checkout</p>
+      <p class="itemlist">prod/checkout</p>
+      <p class="mu">A rolling restart patches spec.template.metadata.annotations. Pods are replaced within maxUnavailable and the PodDisruptionBudgets.</p>
+      <div class="dlg-word">
+        <span class="mu">This touches a protected context or namespace. Type <b class="mono">checkout</b> to confirm.</span>
+        <span class="field mono">checkout<i class="caret"></i></span>
+      </div>
+      <p class="okbox"><svg class="ic"><use href="#i-check"/></svg><span>1 restarted (server dry run) (kubectl.kubernetes.io/restartedAt patched)</span></p>
+      <div class="dlg-foot">
+        <span class="chk"><svg class="ic"><use href="#i-check"/></svg></span><span>Dry run first</span>
+        <span class="grow"></span>
+        <span class="btn sm">Cancel</span><span class="btn sm">Run dry-run</span>
+      </div>
+    </div>
+  </figure>
+</section>
+
+<section class="more-tools wrap" aria-labelledby="tools-h">
+  <h2 id="tools-h">More tools in the same window</h2>
+  <div class="tree-layout">
+    <div class="tree" role="tablist" aria-label="Tools" aria-orientation="vertical">
+      <button type="button" role="tab" id="t-metrics" aria-controls="p-metrics" aria-selected="true"><span>Metrics history<span class="new">New</span></span><span class="ds mono"><span class="er">-2</span> <span class="ok">+1</span></span></button>
+      <button type="button" role="tab" id="t-gitops" aria-controls="p-gitops" aria-selected="false" tabindex="-1"><span>Argo CD and Flux<span class="new">New</span></span><span class="ds mono"><span class="er">-3</span> <span class="ok">+1</span></span></button>
+      <button type="button" role="tab" id="t-agents" aria-controls="p-agents" aria-selected="false" tabindex="-1"><span>Claude Code and MCP<span class="new">New</span></span><span class="ds mono"><span class="er">-2</span> <span class="ok">+1</span></span></button>
+      <button type="button" role="tab" id="t-helm" aria-controls="p-helm" aria-selected="false" tabindex="-1"><span>Helm charts<span class="new">New</span></span><span class="ds mono"><span class="er">-4</span> <span class="ok">+1</span></span></button>
+      <button type="button" role="tab" id="t-debug" aria-controls="p-debug" aria-selected="false" tabindex="-1"><span>Logs, shells, port-forwards</span><span class="ds mono"><span class="er">-3</span> <span class="ok">+1</span></span></button>
+      <button type="button" role="tab" id="t-rbac" aria-controls="p-rbac" aria-selected="false" tabindex="-1"><span>RBAC explorer</span><span class="ds mono"><span class="er">-1</span> <span class="ok">+1</span></span></button>
+      <button type="button" role="tab" id="t-topo" aria-controls="p-topo" aria-selected="false" tabindex="-1"><span>Topology</span><span class="ds mono"><span class="er">-1</span> <span class="ok">+1</span></span></button>
+      <button type="button" role="tab" id="t-ide" aria-controls="p-ide" aria-selected="false" tabindex="-1"><span>Manifests in Git</span><span class="ds mono"><span class="er">-3</span> <span class="ok">+1</span></span></button>
+    </div>
+
+    <div class="tool" role="tabpanel" id="p-metrics" aria-labelledby="t-metrics">
+      <h3><span class="range mono">@@ -7,2 +4,1 @@</span> <span>See CPU and memory over time</span></h3>
+      <div class="lines">
+        <div class="r del"><span class="o">7</span><span class="n"></span><span class="s">-</span><code>kubectl top pod checkout-596d97bc-98bz6 -n prod --containers</code></div>
+        <div class="r del"><span class="o">8</span><span class="n"></span><span class="s">-</span><code>kubectl port-forward svc/prometheus-server 9090:80 -n monitoring</code></div>
+        <div class="r add"><span class="o"></span><span class="n">4</span><span class="s">+</span><p>The Metrics tab shows the CPU and memory history of a pod, workload or node from Prometheus, with the requests and limits. st8ks finds Prometheus itself and queries it through the API server.</p></div>
+      </div>
+      <figure class="shot"><img src="images/metrics.webp" width="678" height="700" alt="The Metrics tab of the Deployment api-gateway: 6 hours of CPU and memory from Prometheus, with the requests and limits" loading="lazy" decoding="async"></figure>
+      <a class="more" href="https://github.com/bjarneo/st8ks/blob/main/docs/metrics.md">Metrics history<svg class="ic"><use href="#i-arrow"/></svg></a>
+    </div>
+
+    <div class="tool" role="tabpanel" id="p-gitops" aria-labelledby="t-gitops">
+      <h3><span class="range mono">@@ -9,3 +5,1 @@</span> <span>Find the GitOps sync that fails</span></h3>
+      <div class="lines">
+        <div class="r del"><span class="o">9</span><span class="n"></span><span class="s">-</span><code>argocd app get shop</code></div>
+        <div class="r del"><span class="o">10</span><span class="n"></span><span class="s">-</span><code>flux get kustomizations -A --status-selector ready=false</code></div>
+        <div class="r del"><span class="o">11</span><span class="n"></span><span class="s">-</span><code>argocd app sync shop</code></div>
+        <div class="r add"><span class="o"></span><span class="n">5</span><span class="s">+</span><p>Argo CD Applications and Flux objects that fail show in Needs attention with the cause. Sync, Refresh, Reconcile, Suspend and Resume open a confirmation with an optional server dry run.</p></div>
+      </div>
+      <figure class="shot"><img src="images/gitops.webp" width="460" height="488" alt="The overview counts 5 Argo CD apps and 9 Flux objects that fail. Needs attention lists orders sync failed, payments is degraded and search has a ComparisonError" loading="lazy" decoding="async"></figure>
+      <a class="more" href="https://github.com/bjarneo/st8ks/blob/main/docs/gitops.md">GitOps with Argo CD and Flux<svg class="ic"><use href="#i-arrow"/></svg></a>
+    </div>
+
+    <div class="tool" role="tabpanel" id="p-agents" aria-labelledby="t-agents">
+      <h3><span class="range mono">@@ -12,2 +6,1 @@</span> <span>Give Claude Code the cluster, not your clipboard</span></h3>
+      <div class="lines">
+        <div class="r del"><span class="o">12</span><span class="n"></span><span class="s">-</span><code>kubectl describe pod checkout-596d97bc-98bz6 -n prod | pbcopy</code></div>
+        <div class="r del"><span class="o">13</span><span class="n"></span><span class="s">-</span><code>kubectl logs checkout-596d97bc-98bz6 -n prod --previous | pbcopy</code></div>
+        <div class="r add"><span class="o"></span><span class="n">6</span><span class="s">+</span><p><code>st8ks mcp</code> gives Claude Code and other MCP clients read-only tools for issues, logs, RBAC, topology and dry runs. st8ks removes Secret values first. Claude Code also runs in the dock with the connected context.</p></div>
+      </div>
+      <figure class="shot"><img src="images/mcp.webp" width="716" height="238" alt="Settings shows the path of claude and the command claude mcp add st8ks with a Copy button" loading="lazy" decoding="async"></figure>
+      <a class="more" href="https://github.com/bjarneo/st8ks/blob/main/docs/mcp.md">MCP server and Claude Code<svg class="ic"><use href="#i-arrow"/></svg></a>
+    </div>
+
+    <div class="tool" role="tabpanel" id="p-helm" aria-labelledby="t-helm">
+      <h3><span class="range mono">@@ -14,4 +7,1 @@</span> <span>Install a chart, roll back a release</span></h3>
+      <div class="lines">
+        <div class="r del"><span class="o">14</span><span class="n"></span><span class="s">-</span><code>helm repo add podinfo https://stefanprodan.github.io/podinfo</code></div>
+        <div class="r del"><span class="o">15</span><span class="n"></span><span class="s">-</span><code>helm install web podinfo/podinfo -n prod -f values.yaml --dry-run=server</code></div>
+        <div class="r del"><span class="o">16</span><span class="n"></span><span class="s">-</span><code>helm history web -n prod</code></div>
+        <div class="r del"><span class="o">17</span><span class="n"></span><span class="s">-</span><code>helm rollback web 1 -n prod</code></div>
+        <div class="r add"><span class="o"></span><span class="n">7</span><span class="s">+</span><p>Install a chart from a repository or an OCI registry. Edit the values and run a server dry run first. Revision history, rollback, uninstall, and upgrade with edited values.</p></div>
+      </div>
+      <figure class="shot"><img src="images/helm-install.webp" width="816" height="476" alt="Install chart with podinfo 6.17.0 from oci://ghcr.io/stefanprodan/charts/podinfo, the release name, the namespace and the values" loading="lazy" decoding="async"></figure>
+      <a class="more" href="https://github.com/bjarneo/st8ks/blob/main/docs/helm.md">Helm charts and releases<svg class="ic"><use href="#i-arrow"/></svg></a>
+    </div>
+
+    <div class="tool" role="tabpanel" id="p-debug" aria-labelledby="t-debug">
+      <h3><span class="range mono">@@ -18,3 +8,1 @@</span> <span>Stream logs, open a shell, forward a port</span></h3>
+      <div class="lines">
+        <div class="r del"><span class="o">18</span><span class="n"></span><span class="s">-</span><code>kubectl logs -f deployment/api-gateway -n prod</code></div>
+        <div class="r del"><span class="o">19</span><span class="n"></span><span class="s">-</span><code>kubectl exec -it api-gateway-564f758fc4-mtk42 -n prod -- sh</code></div>
+        <div class="r del"><span class="o">20</span><span class="n"></span><span class="s">-</span><code>kubectl port-forward svc/api-gateway 8080:80 -n prod</code></div>
+        <div class="r add"><span class="o"></span><span class="n">8</span><span class="s">+</span><p>Logs keep the newest 100,000 lines and filter as you type. Shells, debug containers and port-forwards open from the pod.</p></div>
+      </div>
+      <figure class="shot"><img src="images/logs.webp" width="840" height="306" alt="The log dock follows the api-gateway container with timestamps and level filters" loading="lazy" decoding="async"></figure>
+      <a class="more" href="https://github.com/bjarneo/st8ks/blob/main/docs/logs-shell-port-forward.md">Logs, shells and port-forwards<svg class="ic"><use href="#i-arrow"/></svg></a>
+    </div>
+
+    <div class="tool" role="tabpanel" id="p-rbac" aria-labelledby="t-rbac">
+      <h3><span class="range mono">@@ -21,1 +9,1 @@</span> <span>Know who can do what</span></h3>
+      <div class="lines">
+        <div class="r del"><span class="o">21</span><span class="n"></span><span class="s">-</span><code>kubectl auth can-i create rolebindings -n prod --as nobody --as-group payments-devs</code></div>
+        <div class="r add"><span class="o"></span><span class="n">9</span><span class="s">+</span><p>The RBAC explorer names the binding and the rule behind each permission. The API server confirms each answer.</p></div>
+      </div>
+      <figure class="shot"><img src="images/rbac.webp" width="840" height="620" alt="The RBAC explorer shows the permissions of the group payments-devs in the namespace prod" loading="lazy" decoding="async"></figure>
+      <a class="more" href="https://github.com/bjarneo/st8ks/blob/main/docs/rbac.md">RBAC explorer<svg class="ic"><use href="#i-arrow"/></svg></a>
+    </div>
+
+    <div class="tool" role="tabpanel" id="p-topo" aria-labelledby="t-topo">
+      <h3><span class="range mono">@@ -22,1 +10,1 @@</span> <span>Trace traffic from ingress to pod</span></h3>
+      <div class="lines">
+        <div class="r del"><span class="o">22</span><span class="n"></span><span class="s">-</span><code>kubectl get ingress,svc,endpoints,pods -n prod -o wide</code></div>
+        <div class="r add"><span class="o"></span><span class="n">10</span><span class="s">+</span><p>The topology graph connects each ingress, service, pod, ReplicaSet and Deployment. A pod that fails shows on its path.</p></div>
+      </div>
+      <figure class="shot"><img src="images/topology.webp" width="840" height="520" alt="The topology of the namespace prod, from the ingress shop to the services, pods, ReplicaSets and Deployments" loading="lazy" decoding="async"></figure>
+      <a class="more" href="https://github.com/bjarneo/st8ks/blob/main/docs/topology.md">Topology<svg class="ic"><use href="#i-arrow"/></svg></a>
+    </div>
+
+    <div class="tool" role="tabpanel" id="p-ide" aria-labelledby="t-ide">
+      <h3><span class="range mono">@@ -23,3 +11,1 @@</span> <span>Edit manifests in Git</span></h3>
+      <div class="lines">
+        <div class="r del"><span class="o">23</span><span class="n"></span><span class="s">-</span><code>kubectl diff -f k8s/</code></div>
+        <div class="r del"><span class="o">24</span><span class="n"></span><span class="s">-</span><code>kubectl apply --server-side -f k8s/</code></div>
+        <div class="r del"><span class="o">25</span><span class="n"></span><span class="s">-</span><code>git commit -am "Raise the checkout memory limit" &amp;&amp; git push</code></div>
+        <div class="r add"><span class="o"></span><span class="n">11</span><span class="s">+</span><p>The IDE checks your manifests against the cluster schema and the live pods. It shows the diff to the cluster, applies with server-side apply, and commits and pushes.</p></div>
+      </div>
+      <a class="more" href="https://github.com/bjarneo/st8ks/blob/main/docs/ide.md">IDE for manifests in Git<svg class="ic"><use href="#i-arrow"/></svg></a>
+    </div>
+  </div>
+</section>
+
+<section class="speed wrap" aria-labelledby="speed-h">
+  <div class="speed-text">
+    <h2 id="speed-h">Fast with thousands of objects</h2>
+    <p>Typed protobuf watches, rows that change in place, and a virtual list keep st8ks at 60 frames per second. These numbers come from 6,019 ConfigMaps in one list, in Chromium on Linux.</p>
+    <p class="fa">To repeat the test, run <code>make cluster-up</code> and <code>hack/dev-cluster/load.sh 6000</code>.</p>
+    <a class="more" href="https://github.com/bjarneo/st8ks/blob/main/docs/architecture.md">Architecture and performance<svg class="ic"><use href="#i-arrow"/></svg></a>
+  </div>
+  <table class="tbl">
+    <thead><tr><th scope="col">Operation</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr><td>Open the list of 6,019 ConfigMaps</td><td class="mono">226 ms</td></tr>
+      <tr><td>Filter keystroke to paint</td><td class="mono">1 to 2 frames</td></tr>
+      <tr><td>Sort by a column</td><td class="mono">37 ms</td></tr>
+      <tr><td>Scroll</td><td class="mono">60 fps, p95 frame 17.1 ms</td></tr>
+      <tr><td>All 6,000 objects change at once</td><td class="mono">No long task, p95 frame 16.9 ms</td></tr>
+      <tr><td>Connect and load all pods of a 3-node cluster</td><td class="mono">330 ms</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="local wrap" aria-labelledby="local-h">
+  <h2 id="local-h">Your machine, your kubeconfig, your key</h2>
+  <dl class="kv">
+    <div><dt>License</dt><dd>MIT. Read, change and share the code.</dd></div>
+    <div><dt>Account</dt><dd>None. st8ks has no login and sends no telemetry.</dd></div>
+    <div><dt>Network</dt><dd>st8ks connects to your clusters, and reads Prometheus through the API server or at a URL that you set. It connects to a chart repository or registry only when you add, update or install a chart, and to the Anthropic API only when you ask the assistant.</dd></div>
+    <div><dt>Kubeconfig</dt><dd>The same files as kubectl: <code>KUBECONFIG</code>, <code>~/.kube/config</code> and the other files in <code>~/.kube</code>. Exec plugins such as <code>aws</code>, <code>gke-gcloud-auth-plugin</code> and <code>kubelogin</code> work.</dd></div>
+    <div><dt>Changes</dt><dd>Restart, scale, delete, rollback, sync and reconcile open a confirmation with an optional server dry run. In a protected context or namespace, you type the object name to confirm. The MCP tools for AI agents cannot change the cluster.</dd></div>
+  </dl>
+</section>
+
+<section class="news wrap" id="new" aria-labelledby="new-h">
+  <h2 id="new-h">What is new in each release</h2>
+  <ol class="rels">
+    <li class="rel">
+      <p class="rel-tag"><a class="mono" href="https://github.com/bjarneo/st8ks/releases/tag/v0.3.0">v0.3.0</a><time class="fa" datetime="2026-10-30">30 October 2026</time></p>
+      <div class="lines log">
+        <div class="r add"><span class="s">+</span><p><b>Claude Code and MCP.</b> <code>st8ks mcp</code> gives AI agents read-only tools for the cluster, with Secret values removed. Claude Code runs in the dock with the connected context.</p></div>
+        <div class="r add"><span class="s">+</span><p><b>Metrics history.</b> CPU and memory charts from Prometheus for pods, workloads and nodes, with the requests and limits.</p></div>
+        <div class="r add"><span class="s">+</span><p><b>GitOps.</b> Argo CD Applications and Flux objects that fail show in Needs attention. Sync, refresh and reconcile them with a dry run.</p></div>
+        <div class="r add"><span class="s">+</span><p><b>Helm chart install.</b> Install from a chart repository or an OCI registry. Edit the values and run a server dry run first.</p></div>
+        <div class="r fix"><span class="s"></span><p><span class="lbl">Fix</span>Go 1.27.3 fixes 9 vulnerabilities that govulncheck reported.</p></div>
+      </div>
+    </li>
+    <li class="rel">
+      <p class="rel-tag"><a class="mono" href="https://github.com/bjarneo/st8ks/releases/tag/v0.2.0">v0.2.0</a><time class="fa" datetime="2026-09-29">29 September 2026</time></p>
+      <div class="lines log">
+        <div class="r add"><span class="s">+</span><p><b>IDE for manifests in Git.</b> Check manifests against the cluster schema and the live pods while you type. Compare with the cluster, apply with server-side apply, then commit and push.</p></div>
+      </div>
+    </li>
+    <li class="rel">
+      <p class="rel-tag"><a class="mono" href="https://github.com/bjarneo/st8ks/releases/tag/v0.1.1">v0.1.1</a><time class="fa" datetime="2026-09-28">28 September 2026</time></p>
+      <div class="lines log">
+        <div class="r add"><span class="s">+</span><p><b>Text size.</b> From 80 % to 150 %, with <kbd>Ctrl +</kbd>, <kbd>Ctrl -</kbd> and <kbd>Ctrl 0</kbd>.</p></div>
+        <div class="r add"><span class="s">+</span><p><b>Clusters view.</b> Delete contexts and remove kubeconfig sources. st8ks deletes no file.</p></div>
+        <div class="r add"><span class="s">+</span><p><b>Test the API key.</b> A Test button in Settings shows why the Anthropic API rejects a key.</p></div>
+        <div class="r fix"><span class="s"></span><p><span class="lbl">Fix</span>The assistant sends the saved API key only to <code>api.anthropic.com</code>.</p></div>
+        <div class="r fix"><span class="s"></span><p><span class="lbl">Fix</span>A fast scroll or a filter no longer shows empty rows for one frame.</p></div>
+      </div>
+    </li>
+    <li class="rel">
+      <p class="rel-tag"><a class="mono" href="https://github.com/bjarneo/st8ks/releases/tag/v0.1.0">v0.1.0</a><time class="fa" datetime="2026-09-28">28 September 2026</time></p>
+      <div class="lines log">
+        <div class="r add"><span class="s">+</span><p><b>The first release.</b> Live lists for every kind and CRD, issues with fixes as YAML diffs, logs, shells, port-forwards, RBAC, Helm releases, topology and the assistant.</p></div>
+      </div>
+    </li>
+  </ol>
+  <a class="more" href="https://github.com/bjarneo/st8ks/blob/main/CHANGELOG.md">All release notes<svg class="ic"><use href="#i-arrow"/></svg></a>
+</section>
+
+<section class="install wrap" id="install" aria-labelledby="install-h">
+  <div class="install-head">
+    <h2 id="install-h">Download st8ks</h2>
+    <a class="btn primary lg" href="https://github.com/bjarneo/st8ks/releases/latest" data-dl><svg class="ic"><use href="#i-down"/></svg><span data-dl-label>Download the latest release</span></a>
+  </div>
+  <div class="install-grid">
+    <table class="tbl files" aria-label="Release files">
+      <thead><tr><th scope="col">Platform</th><th scope="col">File</th></tr></thead>
+      <tbody>
+        <tr><td>macOS 12 or later, Apple silicon and Intel</td><td><a class="mono" href="https://github.com/bjarneo/st8ks/releases/latest/download/st8ks-darwin-universal.dmg">st8ks-darwin-universal.dmg</a></td></tr>
+        <tr><td>Windows 10 or 11, x64</td><td><a class="mono" href="https://github.com/bjarneo/st8ks/releases/latest/download/st8ks-windows-amd64-setup.exe">st8ks-windows-amd64-setup.exe</a></td></tr>
+        <tr><td>Windows 11, Arm</td><td><a class="mono" href="https://github.com/bjarneo/st8ks/releases/latest/download/st8ks-windows-arm64-setup.exe">st8ks-windows-arm64-setup.exe</a></td></tr>
+        <tr><td>Linux x86-64</td><td><a class="mono" href="https://github.com/bjarneo/st8ks/releases/latest/download/st8ks-linux-amd64.tar.gz">st8ks-linux-amd64.tar.gz</a></td></tr>
+        <tr><td>Linux Arm64</td><td><a class="mono" href="https://github.com/bjarneo/st8ks/releases/latest/download/st8ks-linux-arm64.tar.gz">st8ks-linux-arm64.tar.gz</a></td></tr>
+        <tr><td>SHA256 checksums of all files</td><td><a class="mono" href="https://github.com/bjarneo/st8ks/releases/latest/download/checksums.txt">checksums.txt</a></td></tr>
+      </tbody>
+    </table>
+    <div class="steps">
+      <div class="term">
+        <div class="term-bar"><span>Start</span><button type="button" class="copy" data-copy="start-cmd"><svg class="ic"><use href="#i-copy"/></svg><span>Copy</span></button></div>
+        <pre id="start-cmd"><code># Open your current context
+st8ks
+# Open this context first
+st8ks --context prod-eu
+# Read only this kubeconfig file
+st8ks --kubeconfig ~/clusters/lab.yaml</code></pre>
+      </div>
+      <p class="fa">Press <kbd>Ctrl K</kbd>, or <kbd>⌘K</kbd> on macOS, to search resources and run commands. The <a href="https://github.com/bjarneo/st8ks/blob/main/docs/installation.md">installation guide</a> covers Gatekeeper, SmartScreen and checksums.</p>
+    </div>
+  </div>
+  <div class="steps linux">
+    <div class="term">
+      <div class="term-bar"><span>Install on Linux</span><button type="button" class="copy" data-copy="linux-cmd"><svg class="ic"><use href="#i-copy"/></svg><span>Copy</span></button></div>
+      <pre id="linux-cmd"><code>curl -fsSLO https://github.com/bjarneo/st8ks/releases/latest/download/st8ks-linux-amd64.tar.gz
+tar -xzf st8ks-linux-amd64.tar.gz
+./st8ks-linux-amd64/install.sh</code></pre>
+    </div>
+    <p class="fa">Linux needs GTK 3, WebKitGTK 4.1 and glibc 2.39 or later. The script copies <code>st8ks</code> to <code>~/.local/bin</code> and adds a desktop entry.</p>
+  </div>
+</section>
+
+</main>
+
+<footer class="foot">
+  <div class="wrap foot-in">
+    <p class="brand"><img src="images/icon.svg" width="22" height="22" alt=""><span>st8ks</span></p>
+    <nav aria-label="Footer">
+      <a href="https://github.com/bjarneo/st8ks">Source</a>
+      <a href="https://github.com/bjarneo/st8ks/blob/main/docs/README.md">Documentation</a>
+      <a href="https://github.com/bjarneo/st8ks/releases">Releases</a>
+      <a href="https://github.com/bjarneo/st8ks/issues/new/choose">Report a bug</a>
+      <a href="https://github.com/bjarneo/st8ks/blob/main/LICENSE">MIT license</a>
+    </nav>
+    <p class="fa small">Kubernetes is a registered trademark of the Linux Foundation. st8ks is not affiliated with it.</p>
+  </div>
+</footer>
+
+</body>
+</html>

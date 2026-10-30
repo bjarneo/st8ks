@@ -6,3 +6,7 @@ frontend/wailsjs
 /dist/
 *.log
 frontend/package.json.md5
+
+# Review screenshots and logs of the design skill
+.impeccable/review/
+.impeccable/questions/
