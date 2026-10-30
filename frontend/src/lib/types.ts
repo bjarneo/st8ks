@@ -111,6 +111,8 @@ export interface TreeState { tree: TreeSection[]; kinds: KindInfo[] }
 export interface AiMsg { role: "user" | "assistant"; text: string }
 export interface AiChunk { id: string; delta?: string; done?: boolean; err?: string }
 export interface AskStart { id: string; cmds: string[] }
+export interface ClaudeInfo { supported: boolean; reason?: string; path: string; install: string; exe: string; addCmd: string }
+export interface ClaudeSession { id: string; context: string; dir: string }
 
 // ---- IDE (internal/ide) ----
 

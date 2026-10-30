@@ -1,5 +1,5 @@
 import { memo, useMemo, useRef } from "react";
-import { goList, nsVisible, openAI, openDetail, saveSettings, ui } from "../lib/app";
+import { goList, nsVisible, openAI, openClaude, openDetail, saveSettings, ui } from "../lib/app";
 import { cores, gib, pctColor, toneVar } from "../lib/format";
 import { shallowEqual, useStore } from "../lib/store";
 import { useTable } from "../lib/tables";
@@ -202,6 +202,7 @@ export function Overview() {
                 </div>
                 <button className="btn sm" onClick={() => openDetail({ kind: i.kind, ns: i.ns, name: i.obj })}>Open</button>
                 <button className="btn sm accent" onClick={() => openAI(i.id, true)}>Explain</button>
+                <button className="btn sm" title="Open in Claude Code" onClick={() => openClaude(i.id)}>Claude Code</button>
               </div>
             ))}
           </div>

@@ -283,14 +283,36 @@ func isWildcardRule(r rbacv1.PolicyRule) bool {
 	return slices.Contains(r.Verbs, "*") && slices.Contains(r.Resources, "*") && slices.Contains(r.APIGroups, "*")
 }
 
-// RbacExplain explains one cell and checks it with the API server.
-func (c *Cluster) RbacExplain(sub Subject, ns, res, verb string) RbacAnswer {
-	var rr RbacResource
+// rbacResource finds a resource of the matrix. Another resource gets its
+// group and scope from the kind registry. The name can have a group, as in
+// deployments.apps, and a subresource, as in deployments/scale.
+func (c *Cluster) rbacResource(res string) RbacResource {
 	for _, r := range rbacResources {
 		if r.Name == res {
-			rr = r
+			return r
 		}
 	}
+	base, sub, hasSub := strings.Cut(res, "/")
+	name, group, hasGroup := strings.Cut(base, ".")
+	rr := RbacResource{Name: name, Group: group}
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	for _, k := range append(append([]*Kind{}, c.builtin...), c.custom...) {
+		if !k.Local && k.Resource == name && (!hasGroup || k.Group == group) {
+			rr = RbacResource{Name: name, Group: k.Group, Cluster: !k.Namespaced}
+			break
+		}
+	}
+	if hasSub {
+		rr.Name += "/" + sub
+	}
+	return rr
+}
+
+// RbacExplain explains one cell and checks it with the API server.
+func (c *Cluster) RbacExplain(sub Subject, ns, res, verb string) RbacAnswer {
+	rr := c.rbacResource(res)
+	res = rr.Name
 	gs, bindings := c.grants(sub, ns)
 	a, p, g := c.evaluate(sub, ns, rr, verb, gs)
 	ans := RbacAnswer{Allowed: a, Partial: p}

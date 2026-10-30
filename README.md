@@ -30,6 +30,7 @@ st8ks watches your clusters live. It shows every resource, finds workloads that 
 | **Operate Helm releases** | Revision history, rollback, uninstall, and upgrade with edited values. [More](docs/helm.md) |
 | **Trace traffic** | A topology graph from ingress to service, pod, ReplicaSet and Deployment. [More](docs/topology.md) |
 | **Ask why** | The read-only assistant explains an issue from the YAML, events and logs with the Claude API. [More](docs/issues-and-assistant.md#assistant) |
+| **Work with AI agents** | `st8ks mcp` gives Claude Code and other MCP clients read-only tools for issues, resources, logs, RBAC, topology and Helm. Secret values never leave st8ks. Claude Code also runs in the dock with the connected context. [More](docs/mcp.md) |
 
 ![A crash loop explained by the assistant, with the proposed memory limit fix shown as a diff](docs/images/fix-diff.png)
 
@@ -80,6 +81,7 @@ See [Development](docs/development.md#local-cluster) for what the cluster contai
 - [IDE for manifests in Git](docs/ide.md)
 - [Logs, shells and port-forwards](docs/logs-shell-port-forward.md)
 - [Issues and the assistant](docs/issues-and-assistant.md)
+- [MCP server and Claude Code](docs/mcp.md)
 - [RBAC explorer](docs/rbac.md)
 - [Helm releases](docs/helm.md)
 - [Topology](docs/topology.md)

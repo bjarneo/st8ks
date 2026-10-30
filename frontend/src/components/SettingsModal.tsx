@@ -3,6 +3,7 @@ import { call, errText } from "../lib/bridge";
 import { fail, saveSettings, say, TEXT_SIZES, ui } from "../lib/app";
 import { useStore } from "../lib/store";
 import type { Settings } from "../lib/types";
+import { ClaudeSetup } from "./ClaudeSetup";
 
 const MODELS = ["claude-opus-5", "claude-sonnet-5", "claude-haiku-4-5", "claude-fable-5-1"];
 
@@ -80,6 +81,7 @@ export function SettingsModal() {
             {[...new Set([s.assistantModel, ...MODELS])].map((m) => <option key={m} value={m}>{m}</option>)}
           </select>
         ))}
+        {row("Claude Code", <ClaudeSetup />, "Click Claude Code in the top bar to run it in the dock. It uses its own login, not the API key.")}
 
         <div className="sec-label">Safety</div>
         {row("Protected names", (

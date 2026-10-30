@@ -13,6 +13,7 @@ Click **⚙** in the top bar, or press `Ctrl K` and type `settings`.
 | | Text size, from 80 % to 150 %. Rows, columns and the terminal grow with the text. | 100 % |
 | Assistant | Anthropic API key | Not set |
 | | Model | `claude-opus-5` |
+| | Claude Code: the path of `claude`, and the command that adds st8ks to Claude Code | — |
 | Safety | Protected names, a regular expression | `(^\|[-_.])(prod\|production\|prd\|live)($\|[-_.])` |
 | Logs | Initial lines | 5000 |
 | Kubeconfig | Added files and folders, removed files, and the `~/.kube` scan | Scan on |
@@ -44,6 +45,18 @@ st8ks --kubeconfig ~/clusters/lab.yaml --context kind-lab
 
 `wails dev` uses its own flags, so the `--kubeconfig` flag does not work in development. Set `KUBECONFIG` instead.
 
+## Subcommands
+
+| Command | Effect |
+| --- | --- |
+| `st8ks mcp [--kubeconfig PATH]... [--context NAME]` | Serve the st8ks MCP server on stdin and stdout. The window does not open. Without `--context`, the server uses the current context. |
+
+```sh
+claude mcp add st8ks -- st8ks mcp --context kind-lab
+```
+
+See [MCP server and Claude Code](mcp.md) for the tools and the Secret redaction.
+
 ## Environment variables
 
 | Variable | Effect |
@@ -51,6 +64,6 @@ st8ks --kubeconfig ~/clusters/lab.yaml --context kind-lab
 | `KUBECONFIG` | The primary kubeconfig files, as for kubectl. |
 | `ANTHROPIC_API_KEY` | The API key for the assistant, when Settings has none. |
 | `ST8KS_NO_SHELL_ENV=1` | Do not read the environment of the login shell at startup. |
-| `ST8KS_DEBUG=1` | Print client-go logs to the terminal. |
+| `ST8KS_DEBUG=1` | Print client-go logs to the terminal. For `st8ks mcp`, the logs go to stderr. |
 | `ST8KS_HIDDEN=1` | Start without a window. The development server then serves the UI to a browser. |
 | `WEBKIT_DISABLE_DMABUF_RENDERER=1` | Linux only. Fixes a blank window with some NVIDIA drivers under Wayland. |

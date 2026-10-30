@@ -89,6 +89,12 @@ The IDE backend is the package `internal/ide`. It does not import the Kubernetes
 
 The IDE code and CodeMirror load when the IDE opens first.
 
+## MCP server
+
+`st8ks mcp` runs the package `internal/mcpserver` on stdin and stdout, before Wails starts. It connects one context with the same `kube.Manager` and `kube.Cluster` as the app, so the tools read the watch cache, the tables and the rule engine. The handshake does not wait for the cluster. The first tool call waits until every watch has listed its objects. `os.Stdout` points at stderr while the server runs, so only the protocol writes to stdout.
+
+Claude Code in the dock runs in a pseudo-terminal with the terminal code of the IDE. Each session gets a kubeconfig with one context and an MCP config file, which st8ks deletes when the session ends.
+
 ## Kubeconfig loading
 
 The primary kubeconfig loads as one merged config, like kubectl. Every extra file loads on its own, so contexts with the same name in different files stay apart. A watcher compares the modification time and size of every source and the file list of every watched folder every 3 seconds.
@@ -97,7 +103,7 @@ The primary kubeconfig loads as one merged config, like kubectl. Every extra fil
 
 | Path | Contents |
 | --- | --- |
-| `main.go`, `app.go`, `app_ide.go` | Startup, flags, and the methods that the frontend calls |
+| `main.go`, `app.go`, `app_ide.go`, `app_mcp.go` | Startup, flags, the `mcp` subcommand, and the methods that the frontend calls |
 | `internal/kube/cluster.go` | Connection, discovery, informers, the flush loop and the health loop |
 | `internal/kube/kinds.go`, `crd.go` | The kind registry and the row builders |
 | `internal/kube/table.go` | Tables, deltas and counts |
@@ -109,6 +115,7 @@ The primary kubeconfig loads as one merged config, like kubectl. Every extra fil
 | `internal/ide` | The IDE: workspace, Git, checks, schemas, kustomize, live diff, apply and the terminal |
 | `internal/kube/ide.go` | The cluster access of the IDE: live objects, pod facts, server-side apply and rollout status |
 | `internal/assistant` | The Claude API client |
+| `internal/mcpserver`, `internal/kube/mcp.go` | The MCP server, its tools and the Secret redaction |
 | `internal/settings`, `internal/shellenv` | Settings and the login shell environment |
 | `frontend/src/lib` | The bridge to Go, stores, tables, filters and streams |
 | `frontend/src/components` | The views |

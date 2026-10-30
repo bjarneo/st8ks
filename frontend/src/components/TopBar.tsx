@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { setMode, setNs, toggleDensity, toggleTheme, ui } from "../lib/app";
+import { openClaude, setMode, setNs, toggleDensity, toggleTheme, ui } from "../lib/app";
 import { shallowEqual, useStore } from "../lib/store";
 import { ensureLoaded, useTable } from "../lib/tables";
 
@@ -99,6 +99,8 @@ export function TopBar() {
       <button className={"btn" + (ai ? " accent" : "")} style={{ color: ai ? "var(--ac)" : "var(--mu)" }} onClick={() => ui.set({ ai: !ai })}>
         <span className="diamond" style={{ background: "currentColor", width: 6, height: 6 }} />Assistant<span className="kbd">A</span>
       </button>
+      <button className="btn" style={{ color: "var(--mu)" }} disabled={cl?.status !== "Connected"} title="Open Claude Code in the dock with the st8ks MCP tools for this context"
+        onClick={() => openClaude()}>Claude Code</button>
       <div className="vsep" />
       <ModeSwitch mode="cluster" />
       <button className="btn" style={{ color: "var(--mu)" }} title="Toggle density" onClick={toggleDensity}>{density === "compact" ? "Compact" : "Comfortable"}</button>

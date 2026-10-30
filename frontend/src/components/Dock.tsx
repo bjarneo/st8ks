@@ -8,6 +8,7 @@ import { useStore } from "../lib/store";
 import { execRouter, logRouter } from "../lib/streams";
 import { termTheme } from "../lib/term";
 import type { ContainerModel, ObjectDoc } from "../lib/types";
+import { ClaudePane } from "./ClaudePane";
 import { useScale } from "./VTable";
 
 // ---- Logs ----
@@ -458,7 +459,7 @@ export function Dock() {
       <div className="dock-tabs">
         {dock.map((t) => (
           <div key={t.id} className={"dock-tab" + (t.id === act?.id ? " on" : "")} onClick={() => ui.set({ dockActive: t.id, dockMin: false })}>
-            {t.type === "logs" ? "Logs" : "Shell"} · {t.pod}{t.container ? `/${t.container}` : ""}
+            {t.type === "claude" ? `Claude Code${t.pod ? " · " + t.pod : ""}` : <>{t.type === "logs" ? "Logs" : "Shell"} · {t.pod}{t.container ? `/${t.container}` : ""}</>}
             <span className="x" onClick={(e) => {
               e.stopPropagation();
               closeDock(t.id);
@@ -472,7 +473,7 @@ export function Dock() {
       <div className="dock-body" style={{ height: min ? 0 : h, overflow: "hidden" }}>
         {dock.map((t) => (
           <div key={t.id} className="col" style={{ display: t.id === act?.id ? "flex" : "none", height: "100%" }}>
-            {t.type === "logs" ? <LogsPane tab={t} /> : <TermPane tab={t} visible={t.id === act?.id && !min} />}
+            {t.type === "logs" ? <LogsPane tab={t} /> : t.type === "claude" ? <ClaudePane tab={t} visible={t.id === act?.id && !min} /> : <TermPane tab={t} visible={t.id === act?.id && !min} />}
           </div>
         ))}
       </div>

@@ -24,6 +24,10 @@ var assets embed.FS
 var version = "dev"
 
 func main() {
+	// st8ks mcp serves the MCP server on stdin and stdout without the GUI.
+	if len(os.Args) > 1 && os.Args[1] == "mcp" {
+		os.Exit(runMCP(os.Args[2:]))
+	}
 	flags := parseFlags(os.Args[1:])
 	if flags.Version {
 		fmt.Println("st8ks " + version)

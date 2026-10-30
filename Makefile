@@ -42,11 +42,11 @@ vet:
 
 ## fmt: format the Go code
 fmt:
-	gofmt -w main.go app.go app_ide.go internal
+	gofmt -w main.go app.go app_ide.go app_mcp.go internal
 
 ## fmt-check: fail when Go code is not formatted
 fmt-check:
-	@test -z "$$(gofmt -l main.go app.go app_ide.go internal)" || { gofmt -l main.go app.go app_ide.go internal; exit 1; }
+	@test -z "$$(gofmt -l main.go app.go app_ide.go app_mcp.go internal)" || { gofmt -l main.go app.go app_ide.go app_mcp.go internal; exit 1; }
 
 ## staticcheck: run staticcheck
 staticcheck:
@@ -79,7 +79,7 @@ cluster-load:
 ## integration: run the integration test against the local kind cluster
 integration:
 	ST8KS_IT_KUBECONFIG=$(DEV_KUBECONFIG) \
-		go test -count=1 -race -tags "integration $(TAGS)" -run TestIntegration -v ./internal/kube/
+		go test -count=1 -race -tags "integration $(TAGS)" -run TestIntegration -v ./internal/kube/ ./internal/mcpserver/
 
 ## clean: remove build output
 clean:

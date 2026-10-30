@@ -27,6 +27,7 @@ type termChunk struct {
 type term struct {
 	f    *os.File
 	cmd  *exec.Cmd
+	done func()
 	once sync.Once
 }
 
@@ -66,12 +67,20 @@ func (ts *Terminals) Start(dir string, env []string, cols, rows uint16) (string,
 	if runtime.GOOS == "windows" {
 		return "", errors.New("the IDE terminal needs Linux or macOS")
 	}
-	sh := shellPath()
 	args := []string{}
 	if runtime.GOOS == "darwin" {
 		args = append(args, "-l")
 	}
-	cmd := exec.Command(sh, args...)
+	return ts.StartCommand(shellPath(), args, dir, env, cols, rows, nil)
+}
+
+// StartCommand runs a program in a terminal in dir with extra environment
+// variables. done runs after the program ends.
+func (ts *Terminals) StartCommand(path string, args []string, dir string, env []string, cols, rows uint16, done func()) (string, error) {
+	if runtime.GOOS == "windows" {
+		return "", errors.New("the terminal needs Linux or macOS")
+	}
+	cmd := exec.Command(path, args...)
 	cmd.Dir = dir
 	cmd.Env = append(append(os.Environ(), "TERM=xterm-256color", "COLORTERM=truecolor", "TERM_PROGRAM=st8ks"), env...)
 	if cols == 0 || rows == 0 {
@@ -84,7 +93,7 @@ func (ts *Terminals) Start(dir string, env []string, cols, rows uint16) (string,
 	b := make([]byte, 6)
 	_, _ = rand.Read(b)
 	id := "t-" + hex.EncodeToString(b)
-	t := &term{f: f, cmd: cmd}
+	t := &term{f: f, cmd: cmd, done: done}
 	ts.mu.Lock()
 	ts.s[id] = t
 	ts.mu.Unlock()
@@ -122,6 +131,9 @@ func (ts *Terminals) pump(id string, t *term) {
 				ts.mu.Lock()
 				delete(ts.s, id)
 				ts.mu.Unlock()
+				if t.done != nil {
+					t.done()
+				}
 				return
 			case <-tk.C:
 				flush()

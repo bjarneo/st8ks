@@ -85,7 +85,7 @@ The cluster contains:
 | `make integration` | The integration test against the local cluster |
 | `make typecheck` | The TypeScript check |
 
-The integration test drives the backend against a real cluster. It covers informers and tables, issue detection, fix proposals, dry runs, logs, exec, port-forwards, Helm, RBAC, the topology and metrics:
+The integration test drives the backend against a real cluster. It covers informers and tables, issue detection, fix proposals, dry runs, logs, exec, port-forwards, Helm, RBAC, the topology and metrics. A second test calls every tool of the MCP server in a namespace of its own:
 
 ```sh
 make cluster-up

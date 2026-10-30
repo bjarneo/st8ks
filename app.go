@@ -71,6 +71,8 @@ type App struct {
 	ide     *ide.Service
 	terms   *ide.Terminals
 	termCfg string // the kubeconfig of the IDE terminal
+
+	cc *claudeCode
 }
 
 // NewApp creates the app.
@@ -82,6 +84,7 @@ func NewApp(flags Flags) *App {
 	})
 	a.ai = assistant.New(a.emit, func() string { return a.st.Get().AnthropicKey }, func() string { return a.st.Get().AssistantModel })
 	a.initIDE()
+	a.initClaude()
 	return a
 }
 
@@ -100,6 +103,7 @@ func (a *App) startup(ctx context.Context) {
 func (a *App) shutdown(context.Context) {
 	close(a.stop)
 	a.shutdownIDE()
+	a.shutdownClaude()
 	a.m.Shutdown()
 }
 

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { call } from "../lib/bridge";
 import {
-  changeTextSize, connect, fail, kindLabel, nav, openAI, openDetail, openDock, saveSettings, say, setMode, toggleDensity, toggleTheme, ui,
+  changeTextSize, connect, fail, kindLabel, nav, openAI, openClaude, openDetail, openDock, saveSettings, say, setMode, toggleDensity, toggleTheme, ui,
 } from "../lib/app";
 import { useStore } from "../lib/store";
 import { ensureLoaded, table, useTables } from "../lib/tables";
@@ -63,7 +63,9 @@ export function Palette() {
     const act = (label: string, sub: string, run: () => void) => out.push({ label, sub, grp: "Action", run });
     act("Open the IDE", "Edit manifests in a Git repository", () => setMode("ide"));
     act("Explain cluster issues", "Assistant", () => openAI(null));
+    act("Open Claude Code", "Terminal with the st8ks MCP tools", () => openClaude());
     for (const i of issues) act(`Explain: ${i.title}`, i.reason, () => openAI(i.id, true));
+    for (const i of issues) act(`Open in Claude Code: ${i.title}`, i.reason, () => openClaude(i.id));
     act("Toggle light / dark theme", "Appearance", toggleTheme);
     act("Toggle compact density", "Appearance", toggleDensity);
     act("Text size: larger", `Appearance · now ${settings?.textSize ?? 100} % · Ctrl +`, () => changeTextSize(1));

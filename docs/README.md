@@ -14,6 +14,7 @@ st8ks is a Kubernetes desktop client for Linux, macOS and Windows. These guides 
 | [IDE](ide.md) | Edit a Git repository of manifests with checks against the live cluster, then dry-run, apply, commit and push. |
 | [Logs, shells and port-forwards](logs-shell-port-forward.md) | Debug a container. |
 | [Issues and the assistant](issues-and-assistant.md) | Understand the problems that st8ks detects and how it proposes fixes. |
+| [MCP server and Claude Code](mcp.md) | Give AI agents read-only cluster tools, and run Claude Code in st8ks. |
 | [RBAC explorer](rbac.md) | See who can do what, and why. |
 | [Helm releases](helm.md) | Roll back, uninstall and upgrade releases. |
 | [Topology](topology.md) | Trace the path from an ingress to its workloads. |

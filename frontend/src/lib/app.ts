@@ -14,7 +14,7 @@ export type DTab = "overview" | "yaml" | "events" | "related";
 export type YMode = "live" | "edit" | "diff";
 
 export interface DetailRef { kind: string; ns: string; name: string; create?: boolean }
-export interface DockTab { id: string; type: "logs" | "term"; ns: string; pod: string; container?: string; previous?: boolean }
+export interface DockTab { id: string; type: "logs" | "term" | "claude"; ns: string; pod: string; container?: string; previous?: boolean; issue?: string }
 export interface ConfirmSpec {
   title: string;
   items: string[];
@@ -286,6 +286,19 @@ export function openDock(type: "logs" | "term", ns: string, pod: string, contain
     const same = s.dock.find((t) => t.type === type && t.ns === ns && t.pod === pod && (container === undefined || t.container === container) && (previous === undefined || !!t.previous === previous));
     if (same) return { dockActive: same.id, dockMin: false };
     const tab: DockTab = { id: `${type}-${++dockSeq}`, type, ns, pod, container, previous };
+    return { dock: [...s.dock, tab], dockActive: tab.id, dockMin: false };
+  });
+}
+
+/** openClaude opens Claude Code with the st8ks MCP tools in the dock. With
+ * an issue id, the session starts with a prompt about the issue. */
+export function openClaude(issue?: string) {
+  ui.set((s) => {
+    const same = s.dock.find((t) => t.type === "claude" && (t.issue ?? "") === (issue ?? ""));
+    if (same) return { dockActive: same.id, dockMin: false };
+    // The tab shows the object of the issue.
+    const obj = issue ? s.issues.find((i) => i.id === issue)?.obj ?? "" : "";
+    const tab: DockTab = { id: `claude-${++dockSeq}`, type: "claude", ns: "", pod: obj, issue };
     return { dock: [...s.dock, tab], dockActive: tab.id, dockMin: false };
   });
 }

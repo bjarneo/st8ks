@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { call, errText } from "../lib/bridge";
-import { nsVisible, openDetail, runIssueAction, ui } from "../lib/app";
+import { nsVisible, openClaude, openDetail, runIssueAction, ui } from "../lib/app";
 import { shallowEqual, useStore } from "../lib/store";
 import { aiRouter } from "../lib/streams";
 import type { AiMsg, AskStart } from "../lib/types";
@@ -118,6 +118,7 @@ export function Assistant() {
             <span className="mu" style={{ lineHeight: 1.5 }}>
               I read cluster state, logs and events to explain failures. I never change anything. Every fix waits for your confirmation.
             </span>
+            <button className="btn sm" style={{ alignSelf: "flex-start" }} title="Claude Code runs in the dock with the st8ks MCP tools" onClick={() => openClaude()}>Open Claude Code</button>
             {!issues.length && <span className="ok">No open issues in this cluster.</span>}
             {issues.map((i) => (
               <div key={i.id} className="ai-issue" onClick={() => ui.set({ aiIssue: i.id })}>
@@ -166,9 +167,12 @@ export function Assistant() {
                 {cmds.map((cmd) => <code key={cmd} className="mono mu" style={{ fontSize: "calc(10.5px * var(--zf))", lineHeight: 1.5, wordBreak: "break-all" }}>$ {cmd}</code>)}
               </div>
             )}
-            {!c.msgs.length && !c.busy && (
-              <button className="btn sm accent" style={{ alignSelf: "flex-start" }} onClick={() => void send(key, "")}>Ask Claude for a deeper analysis</button>
-            )}
+            <div className="flex" style={{ flexWrap: "wrap" }}>
+              {!c.msgs.length && !c.busy && (
+                <button className="btn sm accent" onClick={() => void send(key, "")}>Ask Claude for a deeper analysis</button>
+              )}
+              <button className="btn sm" title="Claude Code starts in the dock with a prompt about this issue" onClick={() => openClaude(issue.id)}>Open in Claude Code</button>
+            </div>
           </>
         )}
         {c.msgs.map((m, k) => (

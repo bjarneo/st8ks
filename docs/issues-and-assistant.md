@@ -43,6 +43,8 @@ Press `a`, click **Assistant** in the top bar, or click **Explain** next to an i
 
 The assistant is read-only. It cannot run commands or change the cluster. Every fix goes through the same confirmations as a manual change.
 
+To let Claude Code investigate an issue with the st8ks tools, click **Open in Claude Code** on the issue. Claude Code runs in the dock and needs no API key in st8ks. See [MCP server and Claude Code](mcp.md).
+
 ### What the assistant sends
 
 For an issue, st8ks sends these data to the Claude API:
