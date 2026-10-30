@@ -5,7 +5,7 @@ import { createStore } from "./store";
 import { reloadTable, resetTables } from "./tables";
 import { singular } from "./format";
 import type {
-  ClusterState, ContextInfo, Counts, Forward, InitState, Issue, KindInfo, Overview, Ref, Settings,
+  ClusterState, ContextInfo, Counts, Forward, InitState, Issue, IssueAction, KindInfo, Overview, Ref, Settings,
   TreeItem, TreeSection, TreeState, FixProposal, Source,
 } from "./types";
 
@@ -23,7 +23,9 @@ export interface ConfirmSpec {
   danger?: boolean;
   word?: string | null;
   input?: { label: string; value: string; type?: "number" | "text" };
-  run: (dry: boolean, input?: string) => Promise<string>;
+  /** option adds a checkbox. Its value goes to run as the third argument. */
+  option?: { label: string };
+  run: (dry: boolean, input?: string, option?: boolean) => Promise<string>;
   noDry?: boolean;
   after?: () => void;
 }
@@ -387,6 +389,75 @@ export function confirmCordon(node: string, on: boolean) {
   });
 }
 
+// ---- GitOps ----
+
+const HELM_RELEASES = "helmreleases.helm.toolkit.fluxcd.io";
+
+/** fluxNoun is the flux CLI noun of a Flux kind, such as "source git". */
+function fluxNoun(kind: string): string {
+  const k = kindSingular(kind);
+  const src: Record<string, string> = { GitRepository: "git", OCIRepository: "oci", HelmRepository: "helm", HelmChart: "chart", Bucket: "bucket" };
+  return src[k] ? "source " + src[k] : k.toLowerCase();
+}
+
+function gitopsTitle(verb: string, r: Ref): string {
+  return `${verb} ${kindSingular(r.kind).toLowerCase()}/${r.name}`;
+}
+
+export function confirmArgoSync(r: Ref, after?: () => void) {
+  ask({
+    title: gitopsTitle("Sync", r),
+    cta: "Sync",
+    items: [`${r.ns}/${r.name}`],
+    note: `Sets the operation field, like argocd app sync ${r.ns}/${r.name}. The Argo CD controller applies the target revision with the sync options of the application. It does not prune.`,
+    word: protectedWord([r.ns], r.name),
+    run: (dry) => call<string>("ArgoSync", r, dry),
+    after,
+  });
+}
+
+export function confirmArgoRefresh(r: Ref, after?: () => void) {
+  ask({
+    title: gitopsTitle("Refresh", r),
+    cta: "Refresh",
+    items: [`${r.ns}/${r.name}`],
+    note: "Sets the annotation argocd.argoproj.io/refresh. Argo CD compares the live state with Git again. It applies nothing.",
+    option: { label: "Hard refresh. Argo CD also generates the manifests again." },
+    word: protectedWord([r.ns], r.name),
+    run: (dry, _v, hard) => call<string>("ArgoRefresh", r, !!hard, dry),
+    after,
+  });
+}
+
+export function confirmFluxReconcile(r: Ref, after?: () => void) {
+  const hr = r.kind === HELM_RELEASES;
+  ask({
+    title: gitopsTitle("Reconcile", r),
+    cta: "Reconcile",
+    items: [`${r.ns}/${r.name}`],
+    note: `Sets the annotation reconcile.fluxcd.io/requestedAt to the current time, like flux reconcile ${fluxNoun(r.kind)} ${r.name} -n ${r.ns}. The controller reconciles the object at once.`,
+    option: hr ? { label: "Force a Helm install or upgrade. This also sets reconcile.fluxcd.io/forceAt." } : undefined,
+    word: protectedWord([r.ns], r.name),
+    run: (dry, _v, force) => call<string>("FluxReconcile", r, hr && !!force, dry),
+    after,
+  });
+}
+
+export function confirmFluxSuspend(r: Ref, suspend: boolean, after?: () => void) {
+  const cmd = `flux ${suspend ? "suspend" : "resume"} ${fluxNoun(r.kind)} ${r.name} -n ${r.ns}`;
+  ask({
+    title: gitopsTitle(suspend ? "Suspend" : "Resume", r),
+    cta: suspend ? "Suspend" : "Resume",
+    items: [`${r.ns}/${r.name}`],
+    note: suspend
+      ? `Sets spec.suspend to true, like ${cmd}. The controller stops the reconciliation. The objects that it applied stay.`
+      : `Sets spec.suspend to false, like ${cmd}. The controller reconciles the object again.`,
+    word: protectedWord([r.ns], r.name),
+    run: (dry) => call<string>("FluxSuspend", r, suspend, dry),
+    after,
+  });
+}
+
 export async function runIssueAction(issue: Issue) {
   const a = issue.action;
   if (!a) return;
@@ -432,10 +503,26 @@ export async function runIssueAction(issue: Issue) {
       case "logs":
         openDock("logs", a.ns ?? "", a.name ?? "", a.container, true);
         break;
+      case "argocd-sync":
+        confirmArgoSync(actionRef(a), mark);
+        break;
+      case "argocd-refresh":
+        confirmArgoRefresh(actionRef(a), mark);
+        break;
+      case "flux-reconcile":
+        confirmFluxReconcile(actionRef(a), mark);
+        break;
+      case "flux-resume":
+        confirmFluxSuspend(actionRef(a), false, mark);
+        break;
     }
   } catch (e) {
     fail(e);
   }
+}
+
+function actionRef(a: IssueAction): Ref {
+  return { kind: a.kind ?? "", ns: a.ns ?? "", name: a.name ?? "" };
 }
 
 /** pendingFix links an applied diff to the issue that proposed it. */

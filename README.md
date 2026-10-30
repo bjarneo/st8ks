@@ -29,6 +29,7 @@ st8ks watches your clusters live. It shows every resource, finds workloads that 
 | **Understand access** | The RBAC explorer names the binding and the rule behind each permission. The API server confirms each answer. [More](docs/rbac.md) |
 | **Operate Helm releases** | Revision history, rollback, uninstall, and upgrade with edited values. [More](docs/helm.md) |
 | **Trace traffic** | A topology graph from ingress to service, pod, ReplicaSet and Deployment. [More](docs/topology.md) |
+| **Watch GitOps** | Argo CD Applications and Flux objects that fail become issues with evidence. Sync, Refresh, Reconcile, Suspend and Resume run with an optional server dry run. [More](docs/gitops.md) |
 | **See history** | CPU and memory charts for pods, workloads and nodes from Prometheus or VictoriaMetrics, with requests and limits. st8ks finds Prometheus itself and queries it through the API server. [More](docs/metrics.md) |
 | **Ask why** | The read-only assistant explains an issue from the YAML, events and logs with the Claude API. [More](docs/issues-and-assistant.md#assistant) |
 | **Work with AI agents** | `st8ks mcp` gives Claude Code and other MCP clients read-only tools for issues, resources, logs, RBAC, topology and Helm. Secret values never leave st8ks. Claude Code also runs in the dock with the connected context. [More](docs/mcp.md) |
@@ -85,6 +86,7 @@ See [Development](docs/development.md#local-cluster) for what the cluster contai
 - [MCP server and Claude Code](docs/mcp.md)
 - [RBAC explorer](docs/rbac.md)
 - [Helm releases](docs/helm.md)
+- [GitOps with Argo CD and Flux](docs/gitops.md)
 - [Metrics history](docs/metrics.md)
 - [Topology](docs/topology.md)
 - [Keyboard shortcuts](docs/keyboard.md)

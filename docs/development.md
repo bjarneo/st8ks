@@ -55,6 +55,7 @@ This is useful for browser developer tools and for automated screenshots with Pu
 | `make cluster-down` | Deletes the cluster and its kubeconfig. |
 | `make cluster-reset` | Deletes the cluster and creates it again. |
 | `make cluster-load` | Adds 6,000 ConfigMaps for a load test. |
+| `make cluster-gitops` | Adds the Argo CD and Flux CRDs and sample objects. See [GitOps objects](#gitops-objects). |
 | `make cluster-prometheus` | Installs Prometheus in the namespace `monitoring`. See [Prometheus](#prometheus). |
 | `hack/dev-cluster/load.sh 20000` | Adds any number of ConfigMaps. |
 | `hack/dev-cluster/load.sh --churn` | Relabels all of them, to test live updates. |
@@ -75,6 +76,31 @@ The cluster contains:
 | jobs | Job `backfill-orders` | A failed job |
 | all | RoleBindings for `payments-devs`, `oncall`, `alice@acme.test` | Data for the RBAC explorer |
 | kube-system | metrics-server | CPU and memory data |
+
+### GitOps objects
+
+The cluster has no Argo CD and no Flux. To test the [GitOps](gitops.md) issues and actions, run the optional script after `make cluster-up`:
+
+```sh
+make cluster-gitops
+```
+
+`hack/dev-cluster/gitops.sh` installs only the CRDs, from the official release manifests at pinned versions: Argo CD v3.5.6, and the controllers of Flux v2.9.6. No controller runs, so the script sets the status of each object with `kubectl patch`. Flux CRDs have a status subresource, so their patches use `--subresource=status`. The Argo CD Application CRD has no status subresource, so its patch changes the object itself.
+
+The objects go to namespace `gitops`, from `hack/dev-cluster/gitops.yaml`:
+
+| Kind | Healthy | Failing |
+| --- | --- | --- |
+| Application | `guestbook`. `inventory` has a sync in progress. | `payments` is Degraded. `billing` is Missing. `catalog` is OutOfSync. `orders` failed its last sync. `search` has a ComparisonError. |
+| GitRepository | `podinfo` | `platform`: Ready False |
+| OCIRepository | `podinfo-oci` | `policies`: Stalled |
+| HelmRepository | `podinfo` | `bitnami`: Ready Unknown for 20 minutes |
+| HelmChart | `gitops-podinfo` | `gitops-redis`: Ready False |
+| Bucket | `assets` | `backups`: suspended and Ready False |
+| Kustomization | `apps`. `monitoring` is suspended and ready. | `platform` fails because its source fails. `infra` fails its build. |
+| HelmRelease | `podinfo` | `redis` fails because its chart fails. `nginx` is stalled. |
+
+An OutOfSync Application shows 2 minutes after st8ks first sees it, when the objects are new. Run the script again to reset the objects and their status after a test of the actions. To remove the namespace and the CRDs, run `hack/dev-cluster/gitops.sh --remove`.
 
 ### Prometheus
 
@@ -109,6 +135,12 @@ The integration test drives the backend against a real cluster. It covers inform
 ```sh
 make cluster-up
 make integration
+```
+
+`TestIntegrationArgoFlux` tests the GitOps rows, issues and actions. It needs the objects of `make cluster-gitops`, and it skips when the CRDs are missing. Each action runs as a dry run, which must not change the object, and for real, which must change it. The test creates its own objects with the prefix `it-` and deletes them at the end. To run only this test:
+
+```sh
+ST8KS_IT_KUBECONFIG=~/.kube/st8ks-dev.yaml go test -count=1 -tags "integration webkit2_41" -run TestIntegrationArgoFlux ./internal/kube/
 ```
 
 ## Code conventions

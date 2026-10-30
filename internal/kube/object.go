@@ -234,6 +234,10 @@ func (c *Cluster) GetObject(ref Ref) (*ObjectDoc, error) {
 		doc.Unschedulable, _, _ = unstructured.NestedBool(u.Object, "spec", "unschedulable")
 	case "CronJobs":
 		doc.Suspended, _, _ = unstructured.NestedBool(u.Object, "spec", "suspend")
+	default:
+		if _, flux := fluxKinds[k.Name]; flux {
+			doc.Suspended, _, _ = unstructured.NestedBool(u.Object, "spec", "suspend")
+		}
 	}
 	doc.Events = c.objectEvents(doc.UID)
 	doc.Related = c.related(k, u)

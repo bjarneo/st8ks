@@ -20,6 +20,14 @@ st8ks checks the cluster for common problems all the time. Each problem is an is
 | A Job failed in the last 24 hours | Warning | The Failed condition and failed pods | None |
 | A PersistentVolumeClaim is pending for 2 minutes | Warning | Provisioning events | None |
 | A cert-manager Certificate is not ready | Warning | The Ready condition | None |
+| An Argo CD Application failed its last sync, or has a condition of a type that ends in `Error` | Error | The operation message and the failed resources, or the condition message | **Sync**, or **Refresh** for a condition |
+| An Argo CD Application is `Degraded` | Error | The health message and the degraded resources | **Sync** |
+| An Argo CD Application is `Missing`, or is `OutOfSync` for 2 minutes without a sync in progress | Warning | The missing resources, or the resources that are out of sync | **Sync** |
+| A Flux object is `Stalled`, or its `Ready` condition is `False` | Error | The conditions, and each source that is not ready | **Reconcile** |
+| A Flux object stays in `Ready` `Unknown` for 10 minutes | Warning | The `Ready` condition | **Reconcile** |
+| A suspended Flux object fails | Warning | The conditions | **Resume** |
+
+st8ks checks these Flux kinds: Kustomization, HelmRelease, GitRepository, OCIRepository, HelmRepository, HelmChart and Bucket. One Argo CD Application or Flux object gives one issue. See [GitOps](gitops.md) for the rules in detail.
 
 Pods of the same workload group into one issue. For example, two crashing replicas of `checkout` are one issue with "2 pods · 12 restarts".
 
@@ -32,6 +40,10 @@ Every action asks for a confirmation or shows a diff first:
 - **Review fix as diff** opens the owning Deployment, StatefulSet or DaemonSet in the YAML diff. The proposed limit is twice the current limit, and at least 256 MiB more. The request goes up to half of the new limit when it is lower. Run a server dry run, then click **Apply**.
 - **Uncordon NODE** opens a confirmation. The pending pod can then schedule on the node.
 - **Roll back Helm release** finds the last revision that deployed or was superseded before the current one, and opens a confirmation.
+- **Sync** sets the `operation` field of an Argo CD Application, like `argocd app sync`. **Refresh** sets the annotation `argocd.argoproj.io/refresh`. A checkbox selects a hard refresh.
+- **Reconcile** sets the annotation `reconcile.fluxcd.io/requestedAt` on a Flux object, like `flux reconcile`. For a HelmRelease, a checkbox also sets `reconcile.fluxcd.io/forceAt`. **Resume** sets `spec.suspend` to `false`.
+
+The GitOps actions are the same as the actions in the detail panel, and they support a server dry run.
 
 After the action, the assistant shows "Applied. Watching for recovery…". The issue disappears when the cluster recovers.
 

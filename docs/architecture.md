@@ -60,7 +60,7 @@ To repeat the measurement, run `make cluster-up` and `hack/dev-cluster/load.sh 6
 | --- | --- |
 | Every built-in kind except ConfigMaps and Secrets | A full watch from the moment st8ks connects, for the counts, issues, relations and topology |
 | ConfigMaps, Secrets | Metadata only, for the counts. A full watch starts when you open the list. |
-| Custom resources | A full watch when you open the list. Certificates of cert-manager start at once, for the overview. |
+| Custom resources | A full watch when you open the list. Certificates of cert-manager, Argo CD Applications and the Flux kinds start at once, for the overview and the issues. |
 
 All watches share one HTTP/2 connection to the API server. When the credentials cannot list a kind in all namespaces, st8ks watches the namespace of the context instead.
 
@@ -70,7 +70,7 @@ A health loop asks the API server for `/version` every 10 seconds. After a failu
 
 ## Issues and fixes
 
-A loop runs once per second when a relevant table changed. It checks pods, nodes, workloads, jobs, claims and certificates, and groups pods of the same workload into one issue. A fix is a proposal, never a change: a YAML draft for the diff view, or a confirmation dialog.
+A loop runs once per second when a relevant table changed, or when a rule that waits for a time can fire. It checks pods, nodes, workloads, jobs, claims, certificates, and Argo CD and Flux objects. It groups pods of the same workload into one issue. A fix is a proposal, never a change: a YAML draft for the diff view, or a confirmation dialog.
 
 ## Assistant
 
@@ -110,6 +110,7 @@ The primary kubeconfig loads as one merged config, like kubectl. Every extra fil
 | `internal/kube/manager.go`, `kubeconfig.go` | Contexts, kubeconfig sources, sessions and port-forwards |
 | `internal/kube/object.go` | Object detail, relations and all changes |
 | `internal/kube/issues.go`, `metrics.go`, `aicontext.go` | Issue detection, metrics and the assistant context |
+| `internal/kube/gitops.go`, `app_gitops.go` | Argo CD and Flux: columns, issue rules and actions |
 | `internal/kube/prometheus.go`, `app_metrics.go` | Prometheus discovery and the queries of the Metrics tab |
 | `internal/kube/logs.go`, `exec.go`, `portforward.go` | Streams |
 | `internal/kube/rbac.go`, `helm.go`, `topology.go` | The RBAC explorer, Helm and the topology |

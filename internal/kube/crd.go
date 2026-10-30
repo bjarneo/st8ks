@@ -89,6 +89,7 @@ func customKind(c *apiextv1.CustomResourceDefinition) *Kind {
 	k.crd = p
 	k.sig = strings.Join(sig, "\x00")
 	k.row = func(_ *Cluster, obj any) *Row { return p.row(namespaced, obj) }
+	gitopsColumns(k)
 	return k
 }
 

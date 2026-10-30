@@ -737,9 +737,10 @@ func (c *Cluster) rebuildCustomKinds() {
 	if m, ok := c.mapper().(meta.ResettableRESTMapper); ok {
 		m.Reset()
 	}
-	// Certificates are part of the overview health, so watch them early.
+	// Certificates and GitOps objects are part of the overview health and
+	// the issues, so watch them early.
 	for _, k := range kinds {
-		if k.Name == "certificates.cert-manager.io" {
+		if k.Name == "certificates.cert-manager.io" || isGitopsKind(k.Name) {
 			c.Ensure(k.Name)
 		}
 	}

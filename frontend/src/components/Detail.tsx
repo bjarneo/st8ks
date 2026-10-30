@@ -1,7 +1,8 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { call, errText } from "../lib/bridge";
 import {
-  ask, closeDetail, confirmCordon, confirmDelete, confirmRestart, fail, kindInfo, kindSingular, notePendingFixApplied,
+  ask, closeDetail, confirmArgoRefresh, confirmArgoSync, confirmCordon, confirmDelete, confirmFluxReconcile, confirmFluxSuspend,
+  confirmRestart, fail, kindInfo, kindSingular, notePendingFixApplied,
   openAI, openDetail, openDock, protectedWord, say, ui, type YMode,
 } from "../lib/app";
 import { age, rel, toneVar } from "../lib/format";
@@ -56,6 +57,10 @@ function Actions({ doc }: { doc: ObjectDoc | null }) {
           run: (dry) => call<string>("SuspendCronJob", d.ns, d.name, !doc.suspended, dry),
         })}>{doc.suspended ? "Resume…" : "Suspend…"}</button>
       )}
+      {has("argocd-sync") && <button className="btn sm" onClick={() => confirmArgoSync(ref)}>Sync…</button>}
+      {has("argocd-refresh") && <button className="btn sm" onClick={() => confirmArgoRefresh(ref)}>Refresh…</button>}
+      {has("flux-reconcile") && !doc.suspended && <button className="btn sm" onClick={() => confirmFluxReconcile(ref)}>Reconcile…</button>}
+      {has("flux-suspend") && <button className="btn sm" onClick={() => confirmFluxSuspend(ref, !doc.suspended)}>{doc.suspended ? "Resume…" : "Suspend…"}</button>}
       {has("edit") && <button className="btn sm" onClick={() => ui.set((s) => ({ dtab: "yaml", ymode: "edit", draft: s.draft ?? doc.yaml }))}>Edit</button>}
       {has("delete") && <button className="btn sm danger-text" onClick={() => confirmDelete(d.kind, [ref])}>Delete…</button>}
     </>

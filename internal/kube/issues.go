@@ -21,7 +21,7 @@ import (
 // IssueAction is the fix that the assistant offers for an issue.
 type IssueAction struct {
 	Label     string `json:"label"`
-	Type      string `json:"type"` // diff, uncordon, helm-rollback, logs
+	Type      string `json:"type"` // diff, uncordon, helm-rollback, logs, argocd-sync, argocd-refresh, flux-reconcile, flux-resume
 	Kind      string `json:"kind,omitempty"`
 	NS        string `json:"ns,omitempty"`
 	Name      string `json:"name,omitempty"`
@@ -54,9 +54,10 @@ type derivedState struct {
 	overview  Overview
 	issues    []Issue
 	issueJSON []byte
+	gitops    gitopsState
 }
 
-var issueKinds = []string{"Pods", "Nodes", "Deployments", "StatefulSets", "DaemonSets", "Jobs", "PersistentVolumeClaims", "Events", "certificates.cert-manager.io"}
+var issueKinds = append([]string{"Pods", "Nodes", "Deployments", "StatefulSets", "DaemonSets", "Jobs", "PersistentVolumeClaims", "Events", "certificates.cert-manager.io"}, gitopsKinds...)
 
 func (c *Cluster) derivedLoop() {
 	tk := time.NewTicker(time.Second)
@@ -85,9 +86,11 @@ func (c *Cluster) refreshDerived() {
 	for _, k := range issueKinds {
 		ik = ik*31 + c.tableVer(k)
 	}
+	// A time-based GitOps rule can fire while no table changes.
+	due := d.gitops.due(time.Now())
 	d.mu.Lock()
 	ovChanged := ovKey != d.ovKey
-	issuesChanged := ik != d.issueKey
+	issuesChanged := ik != d.issueKey || due
 	d.ovKey = ovKey
 	d.issueKey = ik
 	d.mu.Unlock()
@@ -474,6 +477,7 @@ func (c *Cluster) computeIssues() []Issue {
 			}
 		}
 	}
+	c.gitopsIssues(now, func(i *Issue) { add(i.ID, func() *Issue { return i }, "", 0) })
 
 	out := make([]Issue, 0, len(order))
 	for _, id := range order {

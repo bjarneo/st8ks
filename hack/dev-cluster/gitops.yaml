@@ -1,0 +1,376 @@
+# Sample Argo CD and Flux objects for hack/dev-cluster/gitops.sh. No
+# controller runs, so the script sets the status of each object. Each
+# failing object shows one issue rule of st8ks. The healthy objects show no
+# issue.
+#
+# Flux objects state spec.suspend, so a new run of the script resets a
+# suspend or a resume from st8ks.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: gitops
+---
+# ---- Argo CD ----
+# Healthy: Synced and Healthy.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: guestbook
+  namespace: gitops
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/argoproj/argocd-example-apps.git
+    path: guestbook
+    targetRevision: HEAD
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: guestbook
+---
+# A sync runs. OutOfSync does not show while the sync runs.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: inventory
+  namespace: gitops
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/argoproj/argocd-example-apps.git
+    path: kustomize-guestbook
+    targetRevision: HEAD
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: inventory
+operation:
+  initiatedBy:
+    username: admin
+  sync:
+    revision: HEAD
+---
+# Error: health Degraded.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: payments
+  namespace: gitops
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/argoproj/argocd-example-apps.git
+    path: helm-guestbook
+    targetRevision: HEAD
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: payments
+---
+# Warning: health Missing.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: billing
+  namespace: gitops
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/argoproj/argocd-example-apps.git
+    path: guestbook
+    targetRevision: HEAD
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: billing
+---
+# Warning: OutOfSync for more than 2 minutes.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: catalog
+  namespace: gitops
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/argoproj/argocd-example-apps.git
+    path: guestbook
+    targetRevision: HEAD
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: catalog
+  syncPolicy:
+    syncOptions:
+    - CreateNamespace=true
+---
+# Error: the last sync failed.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: orders
+  namespace: gitops
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/argoproj/argocd-example-apps.git
+    path: guestbook
+    targetRevision: HEAD
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: orders
+---
+# Error: a ComparisonError condition.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: search
+  namespace: gitops
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/argoproj/argocd-example-apps.git
+    path: guestbook
+    targetRevision: feature/does-not-exist
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: search
+---
+# ---- Flux sources ----
+# Healthy.
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: GitRepository
+metadata:
+  name: podinfo
+  namespace: gitops
+spec:
+  interval: 1m
+  url: https://github.com/stefanprodan/podinfo
+  ref:
+    branch: master
+  suspend: false
+---
+# Error: Ready False. It is the source of Kustomization platform.
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: GitRepository
+metadata:
+  name: platform
+  namespace: gitops
+spec:
+  interval: 1m
+  url: https://github.com/example/platform-private
+  ref:
+    branch: main
+  secretRef:
+    name: platform-git
+  suspend: false
+---
+# Healthy.
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: OCIRepository
+metadata:
+  name: podinfo-oci
+  namespace: gitops
+spec:
+  interval: 5m
+  url: oci://ghcr.io/stefanprodan/manifests/podinfo
+  ref:
+    tag: latest
+  suspend: false
+---
+# Error: Stalled True.
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: OCIRepository
+metadata:
+  name: policies
+  namespace: gitops
+spec:
+  interval: 5m
+  url: oci://registry.example.com/policies
+  provider: aws
+  ref:
+    tag: v1
+  suspend: false
+---
+# Healthy.
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: podinfo
+  namespace: gitops
+spec:
+  interval: 10m
+  url: https://stefanprodan.github.io/podinfo
+  suspend: false
+---
+# Warning: Ready Unknown for more than 10 minutes.
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: bitnami
+  namespace: gitops
+spec:
+  interval: 10m
+  url: https://charts.example.com/bitnami
+  suspend: false
+---
+# Healthy. helm-controller creates this chart for HelmRelease podinfo.
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmChart
+metadata:
+  name: gitops-podinfo
+  namespace: gitops
+spec:
+  interval: 10m
+  chart: podinfo
+  version: 6.x
+  sourceRef:
+    kind: HelmRepository
+    name: podinfo
+  suspend: false
+---
+# Error: Ready False. It is the chart of HelmRelease redis.
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmChart
+metadata:
+  name: gitops-redis
+  namespace: gitops
+spec:
+  interval: 10m
+  chart: redis
+  version: 99.0.0
+  sourceRef:
+    kind: HelmRepository
+    name: bitnami
+  suspend: false
+---
+# Healthy.
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: Bucket
+metadata:
+  name: assets
+  namespace: gitops
+spec:
+  interval: 5m
+  endpoint: minio.example.com
+  bucketName: assets
+  suspend: false
+---
+# Warning: suspended and failing.
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: Bucket
+metadata:
+  name: backups
+  namespace: gitops
+spec:
+  interval: 5m
+  endpoint: minio.example.com
+  bucketName: backups
+  suspend: true
+---
+# ---- Flux Kustomizations ----
+# Healthy.
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: apps
+  namespace: gitops
+spec:
+  interval: 10m
+  path: ./kustomize
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: podinfo
+  suspend: false
+---
+# Suspended and healthy. No issue.
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: monitoring
+  namespace: gitops
+spec:
+  interval: 10m
+  path: ./deploy/monitoring
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: podinfo
+  suspend: true
+---
+# Error: Ready False, because its source fails.
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: platform
+  namespace: gitops
+spec:
+  interval: 10m
+  path: ./clusters/dev
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: platform
+  suspend: false
+---
+# Error: Ready False, the build fails.
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: infra
+  namespace: gitops
+spec:
+  interval: 10m
+  path: ./deploy/overlays/broken
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: podinfo
+  suspend: false
+---
+# ---- Flux HelmReleases ----
+# Healthy.
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: podinfo
+  namespace: gitops
+spec:
+  interval: 10m
+  chart:
+    spec:
+      chart: podinfo
+      version: 6.x
+      sourceRef:
+        kind: HelmRepository
+        name: podinfo
+  suspend: false
+---
+# Error: Ready False, because its chart fails.
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: redis
+  namespace: gitops
+spec:
+  interval: 10m
+  chart:
+    spec:
+      chart: redis
+      version: 99.0.0
+      sourceRef:
+        kind: HelmRepository
+        name: bitnami
+  suspend: false
+---
+# Error: Stalled True after the upgrade retries.
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: nginx
+  namespace: gitops
+spec:
+  interval: 10m
+  chartRef:
+    kind: OCIRepository
+    name: podinfo-oci
+  upgrade:
+    remediation:
+      retries: 3
+  suspend: false

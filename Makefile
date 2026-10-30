@@ -9,7 +9,7 @@ GOVULNCHECK_VERSION := v1.8.0
 DEV_KUBECONFIG ?= $(or $(ST8KS_DEV_KUBECONFIG),$(HOME)/.kube/st8ks-dev.yaml)
 
 .PHONY: dev build frontend typecheck test race vet fmt fmt-check staticcheck security ci \
-	integration cluster-up cluster-down cluster-reset cluster-load cluster-prometheus clean help
+	integration cluster-up cluster-down cluster-reset cluster-load cluster-gitops cluster-prometheus clean help
 
 ## dev: run the app with live reload
 dev:
@@ -77,6 +77,10 @@ cluster-reset:
 ## cluster-load: add 6000 ConfigMaps to the local cluster for a load test
 cluster-load:
 	hack/dev-cluster/load.sh
+
+## cluster-gitops: add the Argo CD and Flux CRDs and sample objects to the local cluster
+cluster-gitops:
+	hack/dev-cluster/gitops.sh
 
 ## cluster-prometheus: install Prometheus in the local cluster for the Metrics tab
 cluster-prometheus:

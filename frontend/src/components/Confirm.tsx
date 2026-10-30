@@ -10,6 +10,7 @@ export function Confirm() {
   const [busy, setBusy] = useState(false);
   const [res, setRes] = useState<{ ok: boolean; text: string } | null>(null);
   const [input, setInput] = useState(cf.input?.value ?? "");
+  const [opt, setOpt] = useState(false);
   const ok = !cf.word || typed === cf.word;
 
   const go = async () => {
@@ -18,7 +19,7 @@ export function Confirm() {
     setBusy(true);
     setRes(null);
     try {
-      const msg = await cf.run(dry, cf.input ? input : undefined);
+      const msg = await cf.run(dry, cf.input ? input : undefined, cf.option ? opt : undefined);
       if (dry) {
         setRes({ ok: true, text: msg });
       } else {
@@ -47,6 +48,14 @@ export function Confirm() {
             <span className="mu">{cf.input.label}</span>
             <input className="input mono" autoFocus type={cf.input.type ?? "text"} min={0} value={input} onChange={(e) => setInput(e.target.value)} />
           </label>
+        )}
+        {cf.option && (
+          <div className="flex noselect" style={{ cursor: "pointer", alignItems: "flex-start" }} onClick={() => {
+            setOpt(!opt);
+            setRes(null);
+          }}>
+            <span className={"chk" + (opt ? " on" : "")}>{opt ? "✓" : ""}</span><span style={{ lineHeight: 1.45 }}>{cf.option.label}</span>
+          </div>
         )}
         {cf.word && (
           <label className="col" style={{ gap: 6, fontSize: "calc(12px * var(--zf))" }}>

@@ -4,6 +4,7 @@ import { cores, gib, pctColor, toneVar } from "../lib/format";
 import { shallowEqual, useStore } from "../lib/store";
 import { useTable } from "../lib/tables";
 import type { Row, Usage } from "../lib/types";
+import { GitOpsHealth } from "./GitOpsHealth";
 import { sumCounts } from "./Tree";
 
 interface CardProps { title: string; val: string; sub: string; use?: number; req?: number; lim?: number; trend?: number[] }
@@ -183,6 +184,7 @@ export function Overview() {
           </div>
         ))}
       </div>
+      <GitOpsHealth />
       <div className="col" style={{ gap: 10 }}>
         <div className="flex" style={{ gap: 10 }}>
           <h2 style={{ fontSize: "calc(13px * var(--zf))", fontWeight: 600 }}>Needs attention</h2>

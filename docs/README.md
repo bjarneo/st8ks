@@ -17,6 +17,7 @@ st8ks is a Kubernetes desktop client for Linux, macOS and Windows. These guides 
 | [MCP server and Claude Code](mcp.md) | Give AI agents read-only cluster tools, and run Claude Code in st8ks. |
 | [RBAC explorer](rbac.md) | See who can do what, and why. |
 | [Helm releases](helm.md) | Roll back, uninstall and upgrade releases. |
+| [GitOps](gitops.md) | Find failing Argo CD Applications and Flux objects, then sync, refresh, reconcile, suspend or resume them. |
 | [Metrics history](metrics.md) | Read the CPU and memory history of a pod, workload or node from Prometheus. |
 | [Topology](topology.md) | Trace the path from an ingress to its workloads. |
 | [Keyboard shortcuts](keyboard.md) | Work without the mouse. |

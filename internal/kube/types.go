@@ -43,11 +43,14 @@ type Row struct {
 	B bool     `json:"b,omitempty"`
 	X []int64  `json:"x,omitempty"`
 	L string   `json:"l,omitempty"`
+	// S is a digest of the fields that the issue rules read and no cell
+	// shows. A change to it changes the row, so the issue loop runs again.
+	S uint64 `json:"-"`
 }
 
 func (r *Row) equal(o *Row) bool {
 	return r.U == o.U && r.N == o.N && r.M == o.M && r.T == o.T && r.K == o.K &&
-		r.B == o.B && r.L == o.L && slices.Equal(r.C, o.C) && slices.Equal(r.X, o.X)
+		r.B == o.B && r.L == o.L && r.S == o.S && slices.Equal(r.C, o.C) && slices.Equal(r.X, o.X)
 }
 
 // KindInfo describes a resource kind to the frontend.
