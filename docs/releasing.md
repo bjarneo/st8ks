@@ -5,15 +5,18 @@ A tag that starts with `v` publishes a release. `.github/workflows/release.yml` 
 ## Publish a release
 
 1. Make sure that CI passes on `main`.
-2. Tag the commit and push the tag:
+2. Add a section for the version to `CHANGELOG.md`, for example `## v1.2.0`. Describe what changed for the user. Commit and push it.
+3. Tag the commit with an annotated tag and push the tag:
 
    ```sh
-   git tag v1.2.0
+   git tag -a v1.2.0 -m "v1.2.0"
    git push origin v1.2.0
    ```
 
-3. Open the **Actions** tab and follow the **Release** workflow until all jobs pass.
-4. Open the release and check the notes.
+4. Open the **Actions** tab and follow the **Release** workflow until all jobs pass.
+5. Open the release and check the notes.
+
+Without a section for the tag in `CHANGELOG.md`, the notes start with the list of changes.
 
 A tag with a hyphen, such as `v1.2.0-beta.1`, publishes a prerelease. The notes of a prerelease list the changes since the previous tag. The notes of a final release list every change since the previous final release, including the changes of its betas.
 
@@ -52,7 +55,7 @@ The release job then:
 1. Downloads the files of all targets.
 2. Writes `checksums.txt` with SHA256 sums.
 3. Creates a build provenance attestation for every file. This step runs on public repositories only.
-4. Writes the release notes: the changes with authors and commit links, a download table, a "How this release was built" table from the `build-*.json` files, verification commands, and the checksums.
+4. Writes the release notes: the section of `CHANGELOG.md` for the tag as **What's new**, the changes with authors and commit links, a download table, a "How this release was built" table from the `build-*.json` files, verification commands, and the checksums.
 5. Creates the release with the files and `checksums.txt`.
 
 ## Packages

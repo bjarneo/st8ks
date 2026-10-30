@@ -4,6 +4,8 @@ st8ks shows Argo CD Applications and Flux objects with their sync, health and re
 
 st8ks needs no Argo CD or Flux CLI and no access to the Argo CD API server. It reads and changes the custom resources through the Kubernetes API.
 
+![Argo CD and Flux objects that fail in Needs attention, and the Application orders with Sync and Refresh](images/gitops.png)
+
 ## Watched kinds
 
 When the CRDs exist in the cluster, st8ks watches these kinds from the moment it connects. Other custom resources start their watch only when you open their list.

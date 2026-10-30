@@ -278,10 +278,23 @@ jobs:
             CHANGELOG="${CHANGELOG}- $title by $author_info ([\`$short_hash\`](https://github.com/${REPO}/commit/$hash))"$'\n'
           done < <(git log "$RANGE" --no-merges --pretty=format:"%H|%s|%an")
 
+          # The section of CHANGELOG.md for this tag goes first. Links to docs/
+          # point to the files at the tag.
+          NEW=""
+          if [ -f CHANGELOG.md ]; then
+            NEW=$(awk -v tag="$TAG" '/^## / { if (on) exit; on = ($2 == tag); next } on' CHANGELOG.md \
+              | sed "s#](docs/#](https://github.com/${REPO}/blob/${TAG}/docs/#g")
+          fi
+
           dl() { echo "https://github.com/${REPO}/releases/download/${TAG}/$1"; }
           have() { [ -f "artifacts/$1" ]; }
 
           {
+            if [ -n "$NEW" ]; then
+              echo "## What's new"
+              echo "$NEW"
+              echo ""
+            fi
             echo "## What's Changed"
             echo ""
             echo "$CHANGELOG"

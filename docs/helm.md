@@ -36,6 +36,8 @@ Click **Uninstall…** and type the release name to confirm. st8ks deletes every
 
 ## Install a chart
 
+![Install chart with the podinfo chart from an OCI registry and its values](images/helm-install.png)
+
 1. Click **Install chart…**.
 2. Find the chart:
    - To use a chart repository, type a part of the chart name, a keyword or a word of the description. The list shows the newest stable version of each chart that matches. Press the arrow keys to move in the list, and press Enter to select a chart.

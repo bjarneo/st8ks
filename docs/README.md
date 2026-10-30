@@ -23,6 +23,7 @@ st8ks is a Kubernetes desktop client for Linux, macOS and Windows. These guides 
 | [Keyboard shortcuts](keyboard.md) | Work without the mouse. |
 | [Settings, flags and environment variables](configuration.md) | Change defaults and automate st8ks. |
 | [Troubleshooting](troubleshooting.md) | Fix common problems. |
+| [Release notes](../CHANGELOG.md) | See what changed in each release. |
 
 ## Work on st8ks
 

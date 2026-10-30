@@ -96,6 +96,7 @@ See [Development](docs/development.md#local-cluster) for what the cluster contai
 - [Architecture and performance](docs/architecture.md)
 - [Development](docs/development.md)
 - [Release process](docs/releasing.md)
+- [Release notes](CHANGELOG.md)
 
 ## Build from source
 

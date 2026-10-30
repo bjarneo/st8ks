@@ -64,3 +64,6 @@ st8ks watches the object after the change. The issue goes away when the workload
 - [Clusters and kubeconfig files](kubeconfig.md): add files and folders, and use flags.
 - [Keyboard shortcuts](keyboard.md): work faster.
 - [Settings](configuration.md): add an Anthropic API key for the assistant.
+- [MCP server and Claude Code](mcp.md): let Claude Code read the cluster with the st8ks tools.
+- [Metrics history](metrics.md) and [GitOps](gitops.md): see CPU and memory over time, and the state of Argo CD and Flux.
+- [Release notes](../CHANGELOG.md): see what is new in each release.

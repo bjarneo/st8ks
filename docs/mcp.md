@@ -39,6 +39,8 @@ If st8ks cannot parse the YAML of an object, the tool returns an error and no YA
 
 Settings > Assistant shows the command with the path of your st8ks program, and a **Copy** button. Run it once in a terminal:
 
+![The Claude Code row in Settings with the claude mcp add command](images/mcp.png)
+
 ```sh
 claude mcp add st8ks -- /path/to/st8ks mcp
 ```

@@ -37,6 +37,21 @@ kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/late
 
 The first values arrive about 30 seconds after metrics-server starts.
 
+## The Metrics tab shows no data
+
+The **Metrics** tab reads the history from Prometheus. The tab names the cause and the next step. The most common causes are these:
+
+- "No Prometheus found" means that st8ks found no Prometheus Service. Set the Service or a URL in **Settings > Metrics**.
+- "No permission to query Prometheus" means that your role does not allow `get` on `services/proxy`. Set a URL that you can reach, or ask for the permission.
+
+See [Metrics history](metrics.md#states) for all states.
+
+## Claude Code does not start
+
+- The **Claude Code** button needs `claude` on the PATH of your login shell. To install it, run `npm install -g @anthropic-ai/claude-code`, then start st8ks again.
+- **Settings > Assistant** shows the path of `claude` that st8ks found.
+- On Windows, the dock has no terminal. Run `claude` in a terminal and add st8ks with `claude mcp add st8ks -- st8ks mcp`.
+
 ## The shell does not open
 
 - "Cannot exec: container is not running" means that the container crashed or has not started. Use **Start debug container**.

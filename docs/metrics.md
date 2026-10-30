@@ -4,6 +4,8 @@ The **Metrics** tab shows the CPU and memory history of a pod, a Deployment, a S
 
 The list columns and the overview cards still use metrics-server. They show the current value only.
 
+![The Metrics tab of the Deployment api-gateway with 6 hours of CPU and memory history](images/metrics.png)
+
 ## Open the tab
 
 1. Open a pod, a workload or a node in the detail panel.
