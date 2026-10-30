@@ -1,11 +1,14 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { call, errText } from "../lib/bridge";
-import { ask, fail, protectedWord, say, ui } from "../lib/app";
+import { ask, fail, protectedWord, say, setNs, ui } from "../lib/app";
 import { rel, toneVar } from "../lib/format";
 import { shallowEqual, useStore } from "../lib/store";
 import type { HelmDetail, HelmRelease } from "../lib/types";
 import { CodeView } from "./CodeView";
 import { useNow } from "./VTable";
+
+// The install flow loads on first use.
+const HelmInstall = lazy(() => import("./HelmInstall"));
 
 const GRID = "minmax(160px,1.4fr) 120px minmax(160px,1.4fr) 100px 50px 100px 70px";
 
@@ -18,6 +21,8 @@ export function HelmView() {
   const [editing, setEditing] = useState<string | null>(null);
   const [upRes, setUpRes] = useState<{ ok: boolean; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
+  const [installer, setInstaller] = useState<"charts" | "repos" | null>(null);
+  const [installed, setInstalled] = useState("");
   const now = useNow();
 
   const load = useCallback(() => call<HelmRelease[]>("HelmReleases").then((r) => {
@@ -54,6 +59,20 @@ export function HelmView() {
     void load();
     loadDetail();
   };
+  if (installer) {
+    return (
+      <Suspense fallback={<div className="center"><span className="spinner" /></div>}>
+        <HelmInstall start={installer} onClose={() => setInstaller(null)} onInstalled={(r) => {
+          // Show the new release in the list, also when its namespace is not selected.
+          if (nsSel.length && !nsSel.includes(r.ns)) setNs([...nsSel, r.ns]);
+          ui.set({ helmSel: `${r.ns}/${r.name}` });
+          setInstalled(`${r.ns}/${r.name}`);
+          setInstaller(null);
+          void load();
+        }} />
+      </Suspense>
+    );
+  }
   const upgrade = async (dry: boolean) => {
     if (!sel || editing === null) return;
     setBusy(true);
@@ -80,7 +99,9 @@ export function HelmView() {
           <h1>Helm releases</h1>
           <span className="meta-mono">helm v3 · secrets driver · {rels.length}</span>
           <span style={{ flex: 1 }} />
+          <button className="btn" onClick={() => setInstaller("repos")}>Repositories</button>
           <button className="btn" onClick={refresh}>Refresh</button>
+          <button className="btn primary" onClick={() => setInstaller("charts")}>Install chart…</button>
         </div>
         {err && <div className="warnbox" style={{ margin: "0 18px 10px" }}>{err}</div>}
         <div className="grow" style={{ overflow: "auto", borderTop: "1px solid var(--ln)" }}>
@@ -174,8 +195,9 @@ export function HelmView() {
               <pre className="pre">{detail.values}</pre>
             </div>
           )}
+          {installed === key && <div className="okbox">✓ Installed {sel.name}. The notes of the chart show below.</div>}
           {detail?.notes && (
-            <details>
+            <details key={key} open={installed === key}>
               <summary className="sec-label" style={{ cursor: "pointer" }}>Notes</summary>
               <pre className="pre" style={{ marginTop: 8 }}>{detail.notes}</pre>
             </details>

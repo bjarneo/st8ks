@@ -27,7 +27,7 @@ st8ks watches your clusters live. It shows every resource, finds workloads that 
 | **Edit manifests in Git** | The IDE checks your manifests against the schema and the live pods of the cluster, shows the diff to the cluster, applies with server-side apply, and commits and pushes. [More](docs/ide.md) |
 | **Debug a container** | Stream logs, open a shell, attach a debug container to a pod that crashes, and forward ports. [More](docs/logs-shell-port-forward.md) |
 | **Understand access** | The RBAC explorer names the binding and the rule behind each permission. The API server confirms each answer. [More](docs/rbac.md) |
-| **Operate Helm releases** | Revision history, rollback, uninstall, and upgrade with edited values. [More](docs/helm.md) |
+| **Install and operate Helm charts** | Search your chart repositories or paste an `oci://` reference. Edit the values, check the rendered manifest with a server dry run, then install. Revision history, rollback, uninstall, and upgrade with edited values. [More](docs/helm.md) |
 | **Trace traffic** | A topology graph from ingress to service, pod, ReplicaSet and Deployment. [More](docs/topology.md) |
 | **Watch GitOps** | Argo CD Applications and Flux objects that fail become issues with evidence. Sync, Refresh, Reconcile, Suspend and Resume run with an optional server dry run. [More](docs/gitops.md) |
 | **See history** | CPU and memory charts for pods, workloads and nodes from Prometheus or VictoriaMetrics, with requests and limits. st8ks finds Prometheus itself and queries it through the API server. [More](docs/metrics.md) |
@@ -85,7 +85,7 @@ See [Development](docs/development.md#local-cluster) for what the cluster contai
 - [Issues and the assistant](docs/issues-and-assistant.md)
 - [MCP server and Claude Code](docs/mcp.md)
 - [RBAC explorer](docs/rbac.md)
-- [Helm releases](docs/helm.md)
+- [Helm charts and releases](docs/helm.md)
 - [GitOps with Argo CD and Flux](docs/gitops.md)
 - [Metrics history](docs/metrics.md)
 - [Topology](docs/topology.md)

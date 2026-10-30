@@ -346,17 +346,14 @@ func (c *Cluster) loadHelmRepos() {
 	if t == nil {
 		return
 	}
-	f, err := repo.LoadFile(cli.New().RepositoryConfig)
-	if err != nil {
-		t.setSynced(true)
-		return
-	}
-	for _, r := range f.Repositories {
-		typ := "HTTP"
-		if strings.HasPrefix(r.URL, "oci://") {
-			typ = "OCI"
+	keep := map[string]struct{}{}
+	if f, err := repo.LoadFile(cli.New().RepositoryConfig); err == nil {
+		for _, r := range f.Repositories {
+			u := "repo:" + r.Name
+			keep[u] = struct{}{}
+			t.upsert(&Row{U: u, M: r.Name, C: []string{"", redactURLs(r.URL), repoType(r.URL)}, K: "---"})
 		}
-		t.upsert(&Row{U: "repo:" + r.Name, M: r.Name, C: []string{"", r.URL, typ}, K: "---"})
 	}
+	t.retain(keep)
 	t.setSynced(true)
 }

@@ -114,6 +114,7 @@ The primary kubeconfig loads as one merged config, like kubectl. Every extra fil
 | `internal/kube/prometheus.go`, `app_metrics.go` | Prometheus discovery and the queries of the Metrics tab |
 | `internal/kube/logs.go`, `exec.go`, `portforward.go` | Streams |
 | `internal/kube/rbac.go`, `helm.go`, `topology.go` | The RBAC explorer, Helm and the topology |
+| `app_helm.go`, `internal/kube/helm_install.go` | Chart repositories, the chart search with its index cache, and chart installs |
 | `internal/ide` | The IDE: workspace, Git, checks, schemas, kustomize, live diff, apply and the terminal |
 | `internal/kube/ide.go` | The cluster access of the IDE: live objects, pod facts, server-side apply and rollout status |
 | `internal/assistant` | The Claude API client |
