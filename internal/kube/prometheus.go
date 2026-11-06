@@ -24,6 +24,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/cache"
 	"k8s.io/utils/ptr"
 )
 
@@ -346,9 +347,13 @@ func (c *Cluster) discoveryServices(ctx context.Context) ([]*corev1.Service, boo
 	c.mu.RLock()
 	s := c.sources["Services"]
 	c.mu.RUnlock()
-	if s != nil && !s.meta && s.ns == "" && s.inf.HasSynced() {
+	var inf cache.SharedIndexInformer
+	if s != nil && !s.meta {
+		inf = s.allInformer()
+	}
+	if inf != nil && inf.HasSynced() {
 		var out []*corev1.Service
-		for _, o := range s.inf.GetStore().List() {
+		for _, o := range inf.GetStore().List() {
 			if svc, ok := o.(*corev1.Service); ok {
 				out = append(out, svc)
 			}
