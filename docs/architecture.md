@@ -62,7 +62,7 @@ To repeat the measurement, run `make cluster-up` and `hack/dev-cluster/load.sh 6
 | ConfigMaps, Secrets | Metadata only, for the counts. A full watch starts when you open the list. |
 | Custom resources | A full watch when you open the list. Certificates of cert-manager, Argo CD Applications and the Flux kinds start at once, for the overview and the issues. |
 
-All watches share one HTTP/2 connection to the API server. When the credentials cannot list a kind in all namespaces, st8ks watches the namespace of the context instead.
+All watches share one HTTP/2 connection to the API server. When the credentials cannot list a kind in all namespaces, st8ks watches each namespace that allows it instead. It finds them with a `SelfSubjectRulesReview` per namespace, and checks again every minute.
 
 ## Connection health
 

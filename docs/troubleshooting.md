@@ -24,7 +24,7 @@ The error under the context tells the cause. The most common causes:
 ## A list is empty, or shows only one namespace
 
 - Check the namespace menu in the top bar. Choose **All namespaces**.
-- A notice such as "Your credentials cannot list Pods in all namespaces" means that RBAC limits your access. st8ks then shows the namespace of the context. Set it with `kubectl config set-context --current --namespace=NAME`.
+- A notice such as "Your credentials cannot list Pods in all namespaces" means that RBAC limits your access. st8ks then shows each namespace where your credentials can list the kind. When they cannot list namespaces, st8ks shows only the namespace of the context. Set it with `kubectl config set-context --current --namespace=NAME`. See [Restricted permissions](kubeconfig.md#restricted-permissions).
 - A kind that the cluster does not serve does not show in the tree.
 
 ## CPU and memory show a dash

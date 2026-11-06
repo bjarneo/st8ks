@@ -17,6 +17,7 @@ import (
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/release"
 	"helm.sh/helm/v3/pkg/repo"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/discovery"
@@ -118,19 +119,38 @@ func releaseRow(r *release.Release) HelmRelease {
 func (c *Cluster) HelmReleases() ([]HelmRelease, error) {
 	ctx, cancel := context.WithTimeout(c.ctx, 30*time.Second)
 	defer cancel()
-	list, err := c.cs.CoreV1().Secrets("").List(ctx, metav1.ListOptions{LabelSelector: "owner=helm,status!=superseded"})
-	if err != nil {
-		if c.defaultNS == "" {
+	opts := metav1.ListOptions{LabelSelector: "owner=helm,status!=superseded"}
+	var items []corev1.Secret
+	list, err := c.cs.CoreV1().Secrets("").List(ctx, opts)
+	if err == nil {
+		items = list.Items
+	} else {
+		// The credentials cannot list Secrets in all namespaces. Read each
+		// namespace that allows it.
+		nss, _ := c.permittedNamespaces(ctx, "", "secrets", "list")
+		if len(nss) == 0 {
 			return nil, wrapf(err, "cannot list Helm releases")
 		}
-		list, err = c.cs.CoreV1().Secrets(c.defaultNS).List(ctx, metav1.ListOptions{LabelSelector: "owner=helm,status!=superseded"})
-		if err != nil {
-			return nil, wrapf(err, "cannot list Helm releases")
+		var firstErr error
+		read := 0
+		for _, ns := range nss {
+			l, err := c.cs.CoreV1().Secrets(ns).List(ctx, opts)
+			if err != nil {
+				if firstErr == nil {
+					firstErr = err
+				}
+				continue
+			}
+			read++
+			items = append(items, l.Items...)
+		}
+		if read == 0 {
+			return nil, wrapf(firstErr, "cannot list Helm releases")
 		}
 	}
 	latest := map[string]*release.Release{}
-	for i := range list.Items {
-		s := &list.Items[i]
+	for i := range items {
+		s := &items[i]
 		rel, err := decodeRelease(s.Data["release"])
 		if err != nil {
 			continue
