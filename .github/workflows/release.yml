@@ -354,7 +354,7 @@ jobs:
           cat release_notes.md
 
       - name: Create release
-        uses: softprops/action-gh-release@v3.0.3
+        uses: softprops/action-gh-release@v3.0.4
         with:
           body_path: release_notes.md
           prerelease: ${{ steps.release-type.outputs.prerelease }}
