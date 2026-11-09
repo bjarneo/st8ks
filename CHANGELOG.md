@@ -2,6 +2,17 @@
 
 This file lists what changed for you in each release of st8ks. The [release page](https://github.com/bjarneo/st8ks/releases) of each version also lists every commit, the files and their checksums.
 
+## v0.3.1
+
+Released on 2026-11-09.
+
+This release updates the build tools. st8ks works the same as in v0.3.0.
+
+### Development
+
+- Vite 8.3.6 and `@vitejs/plugin-react` 6.2.1 build the frontend.
+- The release workflow uses `softprops/action-gh-release` v3.0.4.
+
 ## v0.3.0
 
 Released on 2026-10-30.
