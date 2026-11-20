@@ -153,7 +153,7 @@ kubectl -n gitops annotate kustomization.kustomize.toolkit.fluxcd.io apps \
 | Lists, columns, overview and issues | `get`, `list` and `watch` on the kinds above |
 | All actions | `patch` on the kind of the object |
 
-When your credentials cannot list a kind in all namespaces, st8ks watches the namespace of the context instead. See [RBAC](rbac.md).
+When your credentials cannot list a kind in all namespaces, st8ks watches each namespace that allows it instead. See [RBAC](rbac.md).
 
 ## Try it on the local cluster
 

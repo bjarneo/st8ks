@@ -77,13 +77,17 @@ If a plugin still fails, the context shows as unreachable with the error from th
 
 ## Restricted permissions
 
-When your credentials cannot list a kind in all namespaces, st8ks falls back to the namespace of the context. The list shows a notice: "Your credentials cannot list Pods in all namespaces. Showing namespace team-a only."
+When your credentials cannot list a kind in all namespaces, st8ks finds the namespaces where they can list and watch it, and watches each of them. The list shows a notice: "Your credentials cannot list Pods in all namespaces. Showing 3 namespaces: team-a, team-b, team-c."
 
-To use this, set a namespace on the context:
+st8ks reads the namespaces and asks the API server for your rules in each of them with a `SelfSubjectRulesReview`. When the rules are incomplete, for example with a webhook authorizer, it asks with a `SelfSubjectAccessReview`. It checks again every minute, so a new namespace or a new role binding shows up without a reconnect. One kind watches at most 50 namespaces, the namespace of the context first.
+
+When your credentials cannot list namespaces either, st8ks checks only the namespace of the context. Set it with:
 
 ```sh
 kubectl config set-context --current --namespace=team-a
 ```
+
+Helm releases and pod metrics use the same namespaces.
 
 ## Connection state
 

@@ -6,7 +6,9 @@ import (
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metricsv1beta1 "k8s.io/metrics/pkg/apis/metrics/v1beta1"
 )
 
 const trendLen = 36
@@ -16,6 +18,7 @@ type metricsState struct {
 	pods     map[string][2]int64
 	nodes    map[string][2]int64
 	ok       bool
+	nodesOK  bool // node metrics, which the cluster usage needs
 	version  uint64
 	usedCPU  int64
 	usedMem  int64
@@ -68,18 +71,19 @@ func (c *Cluster) metricsLoop() {
 func (c *Cluster) pollMetrics() {
 	ctx, cancel := context.WithTimeout(c.ctx, 10*time.Second)
 	defer cancel()
-	pm, perr := c.mc.MetricsV1beta1().PodMetricses("").List(ctx, metav1.ListOptions{})
+	podItems, perr := c.podMetrics(ctx)
 	nm, nerr := c.mc.MetricsV1beta1().NodeMetricses().List(ctx, metav1.ListOptions{})
 	if c.ctx.Err() != nil {
 		return
 	}
-	ok := perr == nil && nerr == nil
+	// Credentials that cannot read node metrics still show pod metrics.
+	ok := perr == nil && (nerr == nil || apierrors.IsForbidden(nerr))
 	pods := map[string][2]int64{}
 	nodes := map[string][2]int64{}
 	var usedCPU, usedMem int64
 	if perr == nil {
-		for i := range pm.Items {
-			p := &pm.Items[i]
+		for i := range podItems {
+			p := &podItems[i]
 			obj := c.getObj("Pods", p.Namespace, p.Name)
 			if obj == nil {
 				continue
@@ -114,11 +118,12 @@ func (c *Cluster) pollMetrics() {
 	m := &c.met
 	m.mu.Lock()
 	m.ok = ok
+	m.nodesOK = nerr == nil
 	m.pods = pods
 	m.nodes = nodes
 	m.usedCPU = usedCPU
 	m.usedMem = usedMem
-	if ok && allocCPU > 0 && allocMem > 0 {
+	if ok && nerr == nil && allocCPU > 0 && allocMem > 0 {
 		m.cpuTrend = pushTrend(m.cpuTrend, float64(usedCPU)*100/float64(allocCPU))
 		m.memTrend = pushTrend(m.memTrend, float64(usedMem)*100/float64(allocMem))
 	}
@@ -141,6 +146,37 @@ func (c *Cluster) pollMetrics() {
 	if len(out) > 0 {
 		c.emit("metrics", out)
 	}
+}
+
+// podMetrics lists the metrics of all pods. When the credentials cannot
+// list them in all namespaces, it lists each namespace that allows it.
+func (c *Cluster) podMetrics(ctx context.Context) ([]metricsv1beta1.PodMetrics, error) {
+	pm, err := c.mc.MetricsV1beta1().PodMetricses("").List(ctx, metav1.ListOptions{})
+	if err == nil {
+		return pm.Items, nil
+	}
+	if !apierrors.IsForbidden(err) {
+		return nil, err
+	}
+	nss, _ := c.permittedNamespaces(ctx, "metrics.k8s.io", "pods", "list")
+	if len(nss) == 0 {
+		return nil, err
+	}
+	var out []metricsv1beta1.PodMetrics
+	read := 0
+	for _, ns := range nss {
+		l, e := c.mc.MetricsV1beta1().PodMetricses(ns).List(ctx, metav1.ListOptions{})
+		if e != nil {
+			err = e
+			continue
+		}
+		read++
+		out = append(out, l.Items...)
+	}
+	if read == 0 {
+		return nil, err
+	}
+	return out, nil
 }
 
 func pushTrend(t []float64, v float64) []float64 {
@@ -214,7 +250,7 @@ func (c *Cluster) computeOverview() Overview {
 	m.mu.RLock()
 	ov.Metrics = m.ok
 	ov.CPU.Used, ov.Mem.Used = -1, -1
-	if m.ok {
+	if m.ok && m.nodesOK {
 		ov.CPU.Used = m.usedCPU
 		ov.Mem.Used = m.usedMem
 	}

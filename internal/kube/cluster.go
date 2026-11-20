@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -33,17 +34,143 @@ import (
 
 const lastApplied = "kubectl.kubernetes.io/last-applied-configuration"
 
+// source watches one kind. It has one part that watches all namespaces,
+// or, when the credentials cannot list the kind in all namespaces, one
+// part for each namespace that allows it.
 type source struct {
-	kind *Kind
-	inf  cache.SharedIndexInformer
-	stop chan struct{}
-	meta bool
-	ns   string
-	note string
-	once sync.Once
+	kind  *Kind
+	parts []*part
+	meta  bool
+	done  chan struct{}
+	once  sync.Once
+
+	// fallback marks a source that watches only the namespaces in nss.
+	fallback  bool
+	nss       []string
+	permitted int
+	checked   []string
 }
 
-func (s *source) close() { s.once.Do(func() { close(s.stop) }) }
+// part is the informer of one namespace, or of all namespaces when ns is
+// empty.
+type part struct {
+	ns   string
+	inf  cache.SharedIndexInformer
+	stop chan struct{}
+	once sync.Once
+	dead atomic.Bool // the credentials cannot list the kind here
+}
+
+func (p *part) close() { p.once.Do(func() { close(p.stop) }) }
+
+func (s *source) close() {
+	s.once.Do(func() {
+		close(s.done)
+		for _, p := range s.parts {
+			p.close()
+		}
+	})
+}
+
+// allInformer returns the informer that watches all namespaces, or nil
+// when the source watches only some namespaces.
+func (s *source) allInformer() cache.SharedIndexInformer {
+	if s.fallback || len(s.parts) != 1 {
+		return nil
+	}
+	return s.parts[0].inf
+}
+
+// live returns the namespaces whose watch did not fail.
+func (s *source) live() []string {
+	out := make([]string, 0, len(s.parts))
+	for _, p := range s.parts {
+		if !p.dead.Load() {
+			out = append(out, p.ns)
+		}
+	}
+	return out
+}
+
+func (s *source) note() string {
+	if !s.fallback {
+		return ""
+	}
+	return fallbackNote(s.kind, s.live(), s.permitted, s.checked)
+}
+
+// wait blocks until each part has listed its objects or failed. It
+// returns false when the source stops first.
+func (s *source) wait() bool {
+	tk := time.NewTicker(100 * time.Millisecond)
+	defer tk.Stop()
+	for {
+		ready := true
+		for _, p := range s.parts {
+			if !p.dead.Load() && !p.inf.HasSynced() {
+				ready = false
+				break
+			}
+		}
+		if ready {
+			return true
+		}
+		select {
+		case <-s.done:
+			return false
+		case <-tk.C:
+		}
+	}
+}
+
+// lookup reads the objects of a source.
+type lookup interface {
+	List() []any
+	ByIndex(index, key string) ([]any, error)
+	GetByKey(key string) (any, bool, error)
+}
+
+// multiIndex reads the objects of the parts of a fallback source. It
+// skips parts whose watch failed.
+type multiIndex []*part
+
+func (m multiIndex) List() []any {
+	var out []any
+	for _, p := range m {
+		if !p.dead.Load() {
+			out = append(out, p.inf.GetIndexer().List()...)
+		}
+	}
+	return out
+}
+
+func (m multiIndex) ByIndex(index, key string) ([]any, error) {
+	var out []any
+	for _, p := range m {
+		if p.dead.Load() || (index == cache.NamespaceIndex && p.ns != key) {
+			continue
+		}
+		objs, err := p.inf.GetIndexer().ByIndex(index, key)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, objs...)
+	}
+	return out, nil
+}
+
+func (m multiIndex) GetByKey(key string) (any, bool, error) {
+	ns, _, err := cache.SplitMetaNamespaceKey(key)
+	if err != nil {
+		return nil, false, err
+	}
+	for _, p := range m {
+		if p.ns == ns && !p.dead.Load() {
+			return p.inf.GetIndexer().GetByKey(key)
+		}
+	}
+	return nil, false, nil
+}
 
 // Cluster is a live connection to one kubeconfig context.
 type Cluster struct {
@@ -85,6 +212,7 @@ type Cluster struct {
 	met        metricsState
 	derived    derivedState
 	prom       promState
+	access     nsAccess
 
 	ideMu sync.Mutex
 	ide   ideState
@@ -241,14 +369,15 @@ func (c *Cluster) Start() error {
 		case k.Local:
 			c.loadHelmRepos()
 		case k.Lazy:
-			c.startSource(k, true, "")
+			c.startSource(k, true)
 		default:
-			c.startSource(k, false, "")
+			c.startSource(k, false)
 		}
 	}
 	go c.flushLoop()
 	go c.healthLoop()
 	go c.derivedLoop()
+	go c.accessLoop()
 	if metricsOK {
 		go c.metricsLoop()
 	}
@@ -318,31 +447,64 @@ func (c *Cluster) transform(k *Kind) cache.TransformFunc {
 	}
 }
 
-// startSource starts an informer for a kind. metaOnly watches only object
-// metadata, which is cheap and enough for the counts in the tree.
-func (c *Cluster) startSource(k *Kind, metaOnly bool, ns string) {
-	c.startSourceIf(k, metaOnly, ns, nil, "")
+// startSource starts an informer for a kind in all namespaces. metaOnly
+// watches only object metadata, which is cheap and enough for the counts
+// in the tree.
+func (c *Cluster) startSource(k *Kind, metaOnly bool) {
+	c.startSourceIf(k, metaOnly, nil, nil)
 }
 
-// startSourceIf starts a source. When expect is set, the new source
-// replaces only that source, so a late fallback never replaces a newer one.
-func (c *Cluster) startSourceIf(k *Kind, metaOnly bool, ns string, expect *source, note string) {
+// startFull starts a full watch for a kind that has no source or only a
+// metadata source. A kind that st8ks watches in some namespaces keeps
+// those namespaces, so it does not ask for all namespaces again.
+func (c *Cluster) startFull(k *Kind, old *source) {
+	if old != nil && old.fallback {
+		c.startSourceIf(k, false, &fallbackSet{nss: old.nss, permitted: old.permitted, checked: old.checked}, old)
+		return
+	}
+	c.startSourceIf(k, false, nil, nil)
+}
+
+// fallbackSet holds the namespaces of a source that cannot watch all
+// namespaces.
+type fallbackSet struct {
+	nss       []string
+	permitted int
+	checked   []string
+}
+
+func (c *Cluster) newInformer(k *Kind, metaOnly bool, ns string) cache.SharedIndexInformer {
+	switch {
+	case metaOnly:
+		return metadatainformer.NewFilteredMetadataInformer(c.meta, k.gvr(), ns, 0, cache.Indexers{}, nil).Informer()
+	case k.Custom:
+		return dynamicinformer.NewFilteredDynamicInformer(c.dyn, k.gvr(), ns, 0, c.indexers(k), nil).Informer()
+	default:
+		lw := cache.NewListWatchFromClient(k.client(c), k.Resource, ns, fields.Everything())
+		return cache.NewSharedIndexInformer(lw, k.newObj(), 0, c.indexers(k))
+	}
+}
+
+// startSourceIf starts a source. fb is nil for a source that watches all
+// namespaces. When expect is set, the new source replaces only that
+// source, so a late fallback never replaces a newer one.
+func (c *Cluster) startSourceIf(k *Kind, metaOnly bool, fb *fallbackSet, expect *source) {
 	if c.ctx.Err() != nil {
 		return
 	}
-	var inf cache.SharedIndexInformer
 	rowFn := k.row
-	switch {
-	case metaOnly:
-		inf = metadatainformer.NewFilteredMetadataInformer(c.meta, k.gvr(), ns, 0, cache.Indexers{}, nil).Informer()
+	if metaOnly {
 		rowFn = metaRow(k)
-	case k.Custom:
-		inf = dynamicinformer.NewFilteredDynamicInformer(c.dyn, k.gvr(), ns, 0, c.indexers(k), nil).Informer()
-	default:
-		lw := cache.NewListWatchFromClient(k.client(c), k.Resource, ns, fields.Everything())
-		inf = cache.NewSharedIndexInformer(lw, k.newObj(), 0, c.indexers(k))
 	}
-	s := &source{kind: k, inf: inf, stop: make(chan struct{}), meta: metaOnly, ns: ns, note: note}
+	s := &source{kind: k, meta: metaOnly, done: make(chan struct{})}
+	if fb == nil {
+		s.parts = []*part{{inf: c.newInformer(k, metaOnly, ""), stop: make(chan struct{})}}
+	} else {
+		s.fallback, s.nss, s.permitted, s.checked = true, fb.nss, fb.permitted, fb.checked
+		for _, ns := range fb.nss {
+			s.parts = append(s.parts, &part{ns: ns, inf: c.newInformer(k, metaOnly, ns), stop: make(chan struct{})})
+		}
+	}
 
 	c.mu.Lock()
 	// Stop cancels the context before it takes the lock, so a source that
@@ -363,44 +525,64 @@ func (c *Cluster) startSourceIf(k *Kind, metaOnly bool, ns string, expect *sourc
 	c.sources[k.Name] = s
 	c.mu.Unlock()
 
-	_ = inf.SetTransform(c.transform(k))
-	_ = inf.SetWatchErrorHandler(func(_ *cache.Reflector, err error) { c.onWatchError(s, t, err) })
-	_, _ = inf.AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc: func(obj any) {
-			t.upsert(rowFn(c, obj))
-			c.hook(k, obj, false)
-		},
-		UpdateFunc: func(_, obj any) {
-			t.upsert(rowFn(c, obj))
-			c.hook(k, obj, false)
-		},
-		DeleteFunc: func(obj any) {
-			if d, ok := obj.(cache.DeletedFinalStateUnknown); ok {
-				obj = d.Obj
-			}
-			m, err := meta.Accessor(obj)
-			if err != nil {
-				return
-			}
-			t.remove(string(m.GetUID()))
-			c.hook(k, obj, true)
-		},
-	})
+	for _, p := range s.parts {
+		inf := p.inf
+		_ = inf.SetTransform(c.transform(k))
+		_ = inf.SetWatchErrorHandler(func(_ *cache.Reflector, err error) { c.onWatchError(s, p, t, err) })
+		_, _ = inf.AddEventHandler(cache.ResourceEventHandlerFuncs{
+			AddFunc: func(obj any) {
+				if p.dead.Load() {
+					return
+				}
+				t.upsert(rowFn(c, obj))
+				c.hook(k, obj, false)
+			},
+			UpdateFunc: func(_, obj any) {
+				if p.dead.Load() {
+					return
+				}
+				t.upsert(rowFn(c, obj))
+				c.hook(k, obj, false)
+			},
+			DeleteFunc: func(obj any) {
+				if d, ok := obj.(cache.DeletedFinalStateUnknown); ok {
+					obj = d.Obj
+				}
+				m, err := meta.Accessor(obj)
+				if err != nil {
+					return
+				}
+				t.remove(string(m.GetUID()))
+				c.hook(k, obj, true)
+			},
+		})
+	}
 	t.setSynced(false)
-	go inf.Run(s.stop)
+	if s.fallback {
+		// Show the notice while the namespaces load.
+		t.setErr(s.note())
+	}
+	for _, p := range s.parts {
+		go p.inf.Run(p.stop)
+	}
 	go func() {
-		if !cache.WaitForCacheSync(s.stop, inf.HasSynced) || !c.isCurrent(s) {
+		if !s.wait() || !c.isCurrent(s) {
 			return
 		}
 		// Drop rows that a previous source left behind.
 		keep := map[string]struct{}{}
-		for _, obj := range inf.GetStore().List() {
-			if m, err := meta.Accessor(obj); err == nil {
-				keep[string(m.GetUID())] = struct{}{}
+		for _, p := range s.parts {
+			if p.dead.Load() {
+				continue
+			}
+			for _, obj := range p.inf.GetStore().List() {
+				if m, err := meta.Accessor(obj); err == nil {
+					keep[string(m.GetUID())] = struct{}{}
+				}
 			}
 		}
 		t.retain(keep)
-		t.setErr(s.note)
+		t.setErr(s.note())
 		t.setSynced(true)
 		if k.Name == "Nodes" {
 			c.updateNodeMeta()
@@ -414,26 +596,32 @@ func (c *Cluster) isCurrent(s *source) bool {
 	return c.sources[s.kind.Name] == s
 }
 
-func (c *Cluster) onWatchError(s *source, t *table, err error) {
+func (c *Cluster) onWatchError(s *source, p *part, t *table, err error) {
 	k := s.kind
-	if !c.isCurrent(s) {
+	if !c.isCurrent(s) || p.dead.Load() {
 		return
 	}
 	switch {
-	case apierrors.IsForbidden(err):
-		msg := "Your credentials cannot list " + k.Label + " in all namespaces."
-		if s.ns != "" {
-			msg = "Your credentials cannot list " + k.Label + " in namespace " + s.ns + "."
-		}
+	case apierrors.IsForbidden(err) && p.ns == "":
 		s.close()
-		if k.Namespaced && s.ns == "" && c.defaultNS != "" {
-			note := msg + " Showing namespace " + c.defaultNS + " only."
-			t.setErr(note)
-			go c.startSourceIf(k, s.meta, c.defaultNS, s, note)
+		if k.Namespaced {
+			t.setErr("Your credentials cannot list " + k.Label + " in all namespaces. Looking for the namespaces that allow it…")
+			go c.startFallback(k, s.meta, s)
 			return
 		}
-		t.setErr(msg)
+		t.setErr("Your credentials cannot list " + k.Label + ".")
 		t.setSynced(true)
+	case apierrors.IsForbidden(err):
+		// The rules allowed this namespace, but the watch failed. Stop it
+		// and drop its rows. The other namespaces go on.
+		p.dead.Store(true)
+		p.close()
+		for _, obj := range p.inf.GetStore().List() {
+			if m, err := meta.Accessor(obj); err == nil {
+				t.remove(string(m.GetUID()))
+			}
+		}
+		t.setErr(s.note())
 	case apierrors.IsNotFound(err) || meta.IsNoMatchError(err):
 		s.close()
 		t.setErr(k.Label + " are not served by this cluster.")
@@ -442,6 +630,62 @@ func (c *Cluster) onWatchError(s *source, t *table, err error) {
 		select {
 		case c.probeNow <- struct{}{}:
 		default:
+		}
+	}
+}
+
+// fallbackFor finds the namespaces where the credentials may list and
+// watch a kind.
+func (c *Cluster) fallbackFor(k *Kind) *fallbackSet {
+	ctx, cancel := context.WithTimeout(c.ctx, 30*time.Second)
+	defer cancel()
+	nss, checked := c.permittedNamespaces(ctx, k.Group, k.Resource, "list", "watch")
+	fb := &fallbackSet{nss: nss, permitted: len(nss), checked: checked}
+	if len(fb.nss) > maxFallbackNamespaces {
+		fb.nss = fb.nss[:maxFallbackNamespaces]
+	}
+	return fb
+}
+
+// startFallback replaces a source that cannot watch all namespaces with
+// one that watches each namespace that allows the kind.
+func (c *Cluster) startFallback(k *Kind, metaOnly bool, expect *source) {
+	fb := c.fallbackFor(k)
+	if c.ctx.Err() != nil {
+		return
+	}
+	c.startSourceIf(k, metaOnly, fb, expect)
+}
+
+// accessLoop checks the fallback sources every minute. When a namespace
+// appears, or the rules of the user change, it watches the namespaces
+// that allow each kind now.
+func (c *Cluster) accessLoop() {
+	tk := time.NewTicker(accessEvery)
+	defer tk.Stop()
+	for {
+		select {
+		case <-c.ctx.Done():
+			return
+		case <-tk.C:
+		}
+		c.mu.RLock()
+		var fbs []*source
+		for _, s := range c.sources {
+			if s.fallback {
+				fbs = append(fbs, s)
+			}
+		}
+		c.mu.RUnlock()
+		for _, s := range fbs {
+			fb := c.fallbackFor(s.kind)
+			if c.ctx.Err() != nil {
+				return
+			}
+			if slices.Equal(fb.nss, s.nss) {
+				continue
+			}
+			c.startSourceIf(s.kind, s.meta, fb, s)
 		}
 	}
 }
@@ -502,7 +746,11 @@ func (c *Cluster) Watch(kinds []string) {
 	for name, t := range c.tables {
 		t.setWatched(c.watched[name])
 	}
-	var start []*Kind
+	type pending struct {
+		k   *Kind
+		old *source
+	}
+	var start []pending
 	for _, name := range kinds {
 		k := c.kinds[name]
 		if k == nil || k.Local {
@@ -510,12 +758,12 @@ func (c *Cluster) Watch(kinds []string) {
 		}
 		s := c.sources[name]
 		if s == nil || s.meta {
-			start = append(start, k)
+			start = append(start, pending{k, s})
 		}
 	}
 	c.mu.Unlock()
-	for _, k := range start {
-		c.startSource(k, false, "")
+	for _, p := range start {
+		c.startFull(p.k, p.old)
 	}
 }
 
@@ -526,7 +774,7 @@ func (c *Cluster) Ensure(name string) {
 	s := c.sources[name]
 	c.mu.RUnlock()
 	if k != nil && !k.Local && (s == nil || s.meta) {
-		c.startSource(k, false, "")
+		c.startFull(k, s)
 	}
 }
 
@@ -566,14 +814,18 @@ func (c *Cluster) table(name string) *table {
 	return c.tables[name]
 }
 
-func (c *Cluster) indexer(name string) cache.Indexer {
+// indexer returns the objects of a kind with a full watch, or nil.
+func (c *Cluster) indexer(name string) lookup {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	s := c.sources[name]
 	if s == nil || s.meta {
 		return nil
 	}
-	return s.inf.GetIndexer()
+	if inf := s.allInformer(); inf != nil {
+		return inf.GetIndexer()
+	}
+	return multiIndex(s.parts)
 }
 
 func (c *Cluster) list(name string) []any {
